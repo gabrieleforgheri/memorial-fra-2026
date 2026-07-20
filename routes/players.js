@@ -30,7 +30,7 @@ router.get('/dates', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-    const { name, gender, preferred_dates, self_rating } = req.body;
+    const { name, gender, preferred_dates, self_category } = req.body;
 
     if (!name || !name.trim() || !gender) {
         return res.status(400).json({ error: 'Name and gender are required' });
@@ -50,10 +50,11 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: `Le date devono essere comprese tra il 25 Lug e il 20 Ago` });
     }
 
-    const rating = Number(self_rating);
-    if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
-        return res.status(400).json({ error: 'Autovalutazione deve essere un numero tra 1 e 10' });
+    if (self_category !== 'F' && self_category !== 'N') {
+        return res.status(400).json({ error: 'Devi indicare se ti reputi Forte o Normale' });
     }
+
+    const normalizedName = name.trim().toUpperCase();
 
     try {
         // Check if tournament is locked
@@ -62,9 +63,14 @@ router.post('/', (req, res) => {
             return res.status(403).json({ error: 'Tournament is locked. Registration closed.' });
         }
 
+        const existing = db.prepare('SELECT id FROM players WHERE name = ?').get(normalizedName);
+        if (existing) {
+            return res.status(400).json({ error: 'Un giocatore con questo nome è già iscritto' });
+        }
+
         const newPlayer = db.transaction(() => {
-            const stmt = db.prepare('INSERT INTO players (name, gender, self_rating) VALUES (?, ?, ?)');
-            const result = stmt.run(name.trim().toUpperCase(), gender, rating);
+            const stmt = db.prepare('INSERT INTO players (name, gender, self_category) VALUES (?, ?, ?)');
+            const result = stmt.run(normalizedName, gender, self_category);
             const playerId = result.lastInsertRowid;
 
             const insertDate = db.prepare('INSERT INTO player_dates (player_id, date) VALUES (?, ?)');
@@ -77,6 +83,9 @@ router.post('/', (req, res) => {
 
         res.status(201).json(newPlayer);
     } catch (err) {
+        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            return res.status(400).json({ error: 'Un giocatore con questo nome è già iscritto' });
+        }
         res.status(500).json({ error: err.message });
     }
 });

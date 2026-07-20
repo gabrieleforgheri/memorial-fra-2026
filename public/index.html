@@ -145,10 +145,17 @@
                                 <div class="reg-summary-row"><span>Date disponibili</span><strong id="summary-dates">-</strong></div>
                             </div>
                             <div class="form-group">
-                                <label>🎾 Su una scala da 1 a 10, quanto ti reputi forte a racchettoni?</label>
-                                <p class="text-sm text-light mb-1">Rispondi con sincerità... o con l'ego che preferisci 😏</p>
-                                <div id="strength-scale" class="strength-scale">
-                                    <!-- JS -->
+                                <label>🎾 Rispetto agli altri giocatori, ti reputi Forte o Normale?</label>
+                                <p class="text-sm text-light mb-1">Rispondi con sincerità, servirà a bilanciare i gironi 😏</p>
+                                <div class="gender-toggle">
+                                    <label class="gender-option">
+                                        <input type="radio" name="self_category" value="F">
+                                        <span class="gender-btn">🔥 Forte</span>
+                                    </label>
+                                    <label class="gender-option">
+                                        <input type="radio" name="self_category" value="N">
+                                        <span class="gender-btn">🌱 Normale</span>
+                                    </label>
                                 </div>
                             </div>
                             <div class="d-flex justify-between mt-2">
@@ -277,7 +284,7 @@
                                         <th>Nome</th>
                                         <th>Genere</th>
                                         <th>Date disponibili</th>
-                                        <th>Autovalutazione</th>
+                                        <th>Si ritiene</th>
                                         <th>Categoria (F/N)</th>
                                         <th>Azioni</th>
                                     </tr>

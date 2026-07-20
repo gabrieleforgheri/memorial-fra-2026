@@ -951,49 +951,6 @@ h1, h2, h3, h4, .font-heading {
     text-align: right;
 }
 
-.strength-scale {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-}
-.strength-btn {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    color: var(--text-main);
-    font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: 1.1rem;
-    cursor: pointer;
-    transition: var(--transition);
-}
-.strength-btn:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-}
-.strength-btn.selected {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-    box-shadow: 0 0 12px rgba(255, 107, 53, 0.4);
-}
-
-.rating-badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 6px;
-    background: rgba(255, 107, 53, 0.15);
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-weight: 700;
-    font-size: 0.85rem;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
     .register-layout, .home-cards {

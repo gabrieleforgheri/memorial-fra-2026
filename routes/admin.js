@@ -31,6 +31,9 @@ router.put('/players/:id/name', (req, res) => {
         db.prepare('UPDATE players SET name = ? WHERE id = ?').run(name.trim().toUpperCase(), req.params.id);
         res.json({ success: true });
     } catch (err) {
+        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            return res.status(400).json({ error: 'Un giocatore con questo nome è già iscritto' });
+        }
         res.status(500).json({ error: err.message });
     }
 });

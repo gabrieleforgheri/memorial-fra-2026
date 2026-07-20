@@ -2,14 +2,11 @@
 
 const registrationApp = {
     selectedDates: new Set(),
-    selectedStrength: null,
     currentStep: 1,
 
     async init() {
         this.selectedDates = new Set();
-        this.selectedStrength = null;
         this.bindEvents();
-        this.renderStrengthScale();
         await this.loadPlayers();
         await this.loadCalendar();
         this.goToStep(1);
@@ -86,30 +83,11 @@ const registrationApp = {
         document.getElementById('summary-dates').textContent = labels.join(', ') || '-';
     },
 
-    renderStrengthScale() {
-        const container = document.getElementById('strength-scale');
-        if (!container) return;
-
-        container.innerHTML = '';
-        for (let i = 1; i <= 10; i++) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'strength-btn';
-            btn.textContent = i;
-            btn.dataset.value = i;
-            btn.addEventListener('click', () => {
-                this.selectedStrength = i;
-                container.querySelectorAll('.strength-btn').forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-            });
-            container.appendChild(btn);
-        }
-    },
-
     async handleRegister(e) {
         e.preventDefault();
         const nameInput = document.getElementById('player-name');
         const genderInput = document.querySelector('input[name="gender"]:checked');
+        const selfCategoryInput = document.querySelector('input[name="self_category"]:checked');
 
         if (!nameInput.value.trim() || !genderInput) {
             window.app.toast('Compila tutti i campi', 'error');
@@ -123,8 +101,8 @@ const registrationApp = {
             return;
         }
 
-        if (!this.selectedStrength) {
-            window.app.toast('Seleziona quanto ti reputi forte, da 1 a 10', 'error');
+        if (!selfCategoryInput) {
+            window.app.toast('Indica se ti reputi Forte o Normale', 'error');
             return;
         }
 
@@ -134,15 +112,14 @@ const registrationApp = {
                 nameInput.value.trim(),
                 genderInput.value,
                 Array.from(this.selectedDates),
-                this.selectedStrength
+                selfCategoryInput.value
             );
             window.app.toast('Iscrizione completata con successo!');
 
             nameInput.value = '';
             this.selectedDates.clear();
-            this.selectedStrength = null;
             this.updateDateDisplay();
-            document.querySelectorAll('.strength-btn.selected').forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('input[name="self_category"]').forEach(r => r.checked = false);
 
             await this.loadPlayers();
             await this.loadCalendar();

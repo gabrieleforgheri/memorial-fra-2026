@@ -345,7 +345,7 @@ const adminApp = {
                 </td>
                 <td>${genderLabel}</td>
                 <td style="font-size:0.85rem; max-width:220px;">${formatDates(p.preferred_dates)}</td>
-                <td class="text-center">${p.self_rating ? `<span class="rating-badge">${p.self_rating}/10</span>` : '<span class="text-light">-</span>'}</td>
+                <td class="text-center">${p.self_category ? `<span class="cat-badge cat-${p.self_category.toLowerCase()}">${p.self_category}</span>` : '<span class="text-light">-</span>'}</td>
                 <td>
                     <select class="form-input bg-dark-soft p-edit-cat" data-id="${p.id}" style="padding:0.4rem; min-width:120px;">
                         <option value="" ${!p.category ? 'selected' : ''}>— Non assegnato</option>

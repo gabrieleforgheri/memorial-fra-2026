@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS players (
   category TEXT CHECK(category IN ('F', 'N', NULL)),
   preferred_date TEXT,
   self_rating INTEGER CHECK(self_rating IS NULL OR (self_rating BETWEEN 1 AND 10)),
+  self_category TEXT CHECK(self_category IS NULL OR self_category IN ('F', 'N')),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -83,6 +84,13 @@ try {
   // Column likely already exists
 }
 
+// Auto-migrate to add self_category if it doesn't exist
+try {
+  db.exec("ALTER TABLE players ADD COLUMN self_category TEXT CHECK(self_category IS NULL OR self_category IN ('F', 'N'));");
+} catch (err) {
+  // Column likely already exists
+}
+
 // New table for multiple dates per player
 db.exec(`
   CREATE TABLE IF NOT EXISTS player_dates (
@@ -92,5 +100,12 @@ db.exec(`
     UNIQUE(player_id, date)
   );
 `);
+
+// Names are stored trimmed+uppercased, so a plain unique index is case-insensitive in practice.
+try {
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_players_name_unique ON players(name);');
+} catch (err) {
+  // Existing duplicate names in the DB prevent the index from being created; leave as-is.
+}
 
 module.exports = db;
