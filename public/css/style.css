@@ -620,11 +620,12 @@ h1, h2, h3, h4, .font-heading {
     justify-content: space-between;
     align-items: center;
     transition: var(--transition);
+    min-width: 0;
 }
 .match-card:hover {
     background: rgba(255,255,255,0.05);
 }
-.match-info { flex: 1; }
+.match-info { flex: 1; min-width: 0; }
 .match-phase {
     font-size: 0.8rem;
     color: var(--accent);
@@ -641,8 +642,14 @@ h1, h2, h3, h4, .font-heading {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
-.match-team-name { font-weight: 500; }
+.match-team-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .match-score-box {
     display: flex;
     align-items: center;
@@ -767,12 +774,38 @@ h1, h2, h3, h4, .font-heading {
 .modal-content {
     width: 100%;
     max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
     padding: 2rem;
     transform: translateY(20px);
     transition: var(--transition);
 }
 .modal:not(.hidden) .modal-content {
     transform: translateY(0);
+}
+.score-input-layout {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.75rem;
+}
+.team-score {
+    flex: 1;
+    min-width: 0;
+}
+.team-score .fw-600 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9rem;
+}
+.score-input {
+    font-size: 1.6rem;
+    padding: 0.5rem;
+}
+.score-separator {
+    flex-shrink: 0;
+    padding-bottom: 0.6rem;
 }
 .border-accent { border: 1px solid var(--accent); }
 
@@ -1241,6 +1274,31 @@ h1, h2, h3, h4, .font-heading {
 }
 
 /* Responsive */
+@media (max-width: 480px) {
+    .match-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+    .match-card > div:last-child {
+        justify-content: center;
+    }
+    .match-teams {
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+    .match-team {
+        text-align: center !important;
+        flex: none !important;
+    }
+    .match-team-name {
+        white-space: normal;
+    }
+    .match-score-box {
+        align-self: center;
+    }
+}
+
 @media (max-width: 768px) {
     .register-layout, .home-cards {
         grid-template-columns: 1fr;

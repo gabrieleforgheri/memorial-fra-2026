@@ -146,3 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
     app.initMobileMenu();
     app.initRouter();
 });
+
+// If the browser restores this page from the back-forward cache (common on iOS
+// Safari when switching apps/tabs), the tab keeps running whatever JS was loaded
+// at the time - which can be stale after a deploy and start talking to an API
+// that has since changed shape. Force a fresh load in that case.
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
