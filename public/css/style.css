@@ -951,6 +951,79 @@ h1, h2, h3, h4, .font-heading {
     text-align: right;
 }
 
+/* Admin: availability stats chart */
+.stats-chart-wrap {
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+.stats-svg {
+    display: block;
+}
+.stats-gridline {
+    stroke: var(--border-color);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+.stats-axis-label {
+    font-size: 9px;
+    fill: var(--text-muted);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+}
+.stats-day-label {
+    font-size: 8px;
+    fill: var(--text-muted);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+}
+.stats-month-label {
+    font-size: 8px;
+    fill: var(--accent);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.stats-peak-label {
+    font-size: 10px;
+    font-weight: 700;
+    fill: var(--text-main);
+    font-family: var(--font-heading);
+}
+.stats-bar-group {
+    cursor: pointer;
+}
+.stats-bar {
+    fill: var(--accent);
+    transition: fill 0.15s ease;
+}
+.stats-bar-zero {
+    fill: var(--border-color);
+}
+.stats-bar-hit {
+    fill: transparent;
+}
+.stats-bar-group:hover .stats-bar {
+    fill: var(--accent-hover);
+}
+.stats-bar-group.selected .stats-bar,
+.stats-bar-group.selected .stats-bar-zero {
+    fill: var(--secondary);
+}
+.stats-bar-group:focus-visible .stats-bar-hit {
+    outline: 2px solid var(--secondary);
+    outline-offset: -2px;
+}
+.stats-detail-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+@media (max-width: 640px) {
+    .stats-detail-columns {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .register-layout, .home-cards {

@@ -216,23 +216,26 @@ const adminApp = {
     async loadDashboardData() {
         window.app.showLoader();
         try {
-            const [players, state, matches, groups] = await Promise.all([
+            const [players, state, matches, groups, datesStats] = await Promise.all([
                 window.api.getPlayers(),
                 window.api.getTournamentState(),
                 window.api.getMatches(),
-                window.api.getGroups()
+                window.api.getGroups(),
+                window.api.getDatesStats()
             ]);
-            
+
             this.players = players || [];
             this.state = state || {};
             this.matches = matches || [];
             this.groups = groups || [];
+            this.datesStats = datesStats || [];
 
             this.renderPlayersTable();
             this.renderState();
             this.renderMatches();
             this.renderGroups();
-            
+            this.renderStats();
+
         } catch (e) {
             console.error('Error loading admin dash', e);
             window.app.toast('Errore nel caricamento', 'error');
@@ -397,6 +400,160 @@ const adminApp = {
                 } catch(err) { window.app.toast(err.message || 'Errore eliminazione', 'error'); }
             });
         });
+    },
+
+    renderStats() {
+        const chartContainer = document.getElementById('admin-stats-chart');
+        const summaryLine = document.getElementById('stats-summary-line');
+        if (!chartContainer) return;
+
+        const TOURNAMENT_DATE_MIN = '2026-07-25';
+        const TOURNAMENT_DATE_MAX = '2026-08-20';
+        const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+
+        const countByDate = {};
+        (this.datesStats || []).forEach(d => { countByDate[d.date] = d.count; });
+
+        const dates = [];
+        let cur = new Date(TOURNAMENT_DATE_MIN + 'T12:00:00');
+        const end = new Date(TOURNAMENT_DATE_MAX + 'T12:00:00');
+        while (cur <= end) {
+            dates.push(cur.toISOString().split('T')[0]);
+            cur.setDate(cur.getDate() + 1);
+        }
+
+        const totalPlayers = (this.players || []).length;
+
+        if (totalPlayers === 0) {
+            chartContainer.innerHTML = '<p class="text-center text-light py-2">Nessun iscritto ancora: il grafico apparirà alle prime iscrizioni.</p>';
+            if (summaryLine) summaryLine.textContent = '';
+            const detail = document.getElementById('admin-stats-detail');
+            if (detail) detail.innerHTML = '';
+            return;
+        }
+
+        const counts = dates.map(d => countByDate[d] || 0);
+        const maxCount = Math.max(1, ...counts);
+        const peakIndex = counts.indexOf(maxCount);
+        const peakDate = dates[peakIndex];
+
+        if (summaryLine) {
+            const dt = new Date(peakDate + 'T12:00:00');
+            summaryLine.textContent = `Picco: ${dt.getDate()} ${monthNames[dt.getMonth()]} (${maxCount}/${totalPlayers} iscritti)`;
+        }
+
+        // Layout
+        const barSlot = 24;
+        const barWidth = 16;
+        const chartHeight = 140;
+        const axisHeight = 34;
+        const width = dates.length * barSlot;
+        const svgHeight = chartHeight + axisHeight;
+        const niceMax = Math.max(5, Math.ceil(maxCount / 5) * 5);
+
+        const gridLines = [0, 0.5, 1].map(f => {
+            const y = chartHeight - f * chartHeight;
+            const val = Math.round(f * niceMax);
+            return `<line x1="0" y1="${y}" x2="${width}" y2="${y}" class="stats-gridline" />
+                    <text x="-6" y="${y + 3}" text-anchor="end" class="stats-axis-label">${val}</text>`;
+        }).join('');
+
+        const bars = dates.map((date, i) => {
+            const count = countByDate[date] || 0;
+            const h = niceMax > 0 ? (count / niceMax) * chartHeight : 0;
+            const x = i * barSlot + (barSlot - barWidth) / 2;
+            const y = chartHeight - h;
+            const r = Math.min(4, h);
+            const dt = new Date(date + 'T12:00:00');
+            const isFirstOfMonth = dt.getDate() === 1 || i === 0;
+            const dayLabel = dt.getDate();
+
+            let path;
+            if (h <= 0) {
+                path = '';
+            } else {
+                path = `M ${x},${chartHeight} L ${x},${y + r} Q ${x},${y} ${x + r},${y}
+                        L ${x + barWidth - r},${y} Q ${x + barWidth},${y} ${x + barWidth},${y + r}
+                        L ${x + barWidth},${chartHeight} Z`;
+            }
+
+            const peakLabel = i === peakIndex
+                ? `<text x="${x + barWidth / 2}" y="${y - 6}" text-anchor="middle" class="stats-peak-label">${count}</text>`
+                : '';
+
+            const monthLabel = isFirstOfMonth
+                ? `<text x="${x + barWidth / 2}" y="${chartHeight + axisHeight - 4}" text-anchor="middle" class="stats-month-label">${monthNames[dt.getMonth()]}</text>`
+                : '';
+
+            return `
+                <g class="stats-bar-group" data-date="${date}" tabindex="0" role="button" aria-label="${dayLabel} ${monthNames[dt.getMonth()]}, ${count} disponibili">
+                    <rect x="${x - 2}" y="0" width="${barWidth + 4}" height="${chartHeight}" fill="transparent" class="stats-bar-hit" />
+                    ${h > 0 ? `<path d="${path}" class="stats-bar" />` : `<rect x="${x}" y="${chartHeight - 2}" width="${barWidth}" height="2" class="stats-bar-zero" />`}
+                    ${peakLabel}
+                    <text x="${x + barWidth / 2}" y="${chartHeight + 14}" text-anchor="middle" class="stats-day-label">${dayLabel}</text>
+                    ${monthLabel}
+                    <title>${dayLabel} ${monthNames[dt.getMonth()]}: ${count} disponibil${count === 1 ? 'e' : 'i'} su ${totalPlayers}</title>
+                </g>`;
+        }).join('');
+
+        chartContainer.innerHTML = `
+            <svg viewBox="-28 -14 ${width + 32} ${svgHeight + 14}" width="${Math.max(width + 40, 500)}" height="${svgHeight + 14}" class="stats-svg">
+                ${gridLines}
+                ${bars}
+            </svg>
+        `;
+
+        chartContainer.querySelectorAll('.stats-bar-group').forEach(g => {
+            g.addEventListener('click', () => this.renderStatsDetail(g.dataset.date));
+            g.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.renderStatsDetail(g.dataset.date); }
+            });
+        });
+
+        // Keep the previously selected day highlighted/shown across re-renders, default to the peak day
+        this.renderStatsDetail(this.selectedStatsDate && dates.includes(this.selectedStatsDate) ? this.selectedStatsDate : peakDate);
+    },
+
+    renderStatsDetail(date) {
+        this.selectedStatsDate = date;
+
+        document.querySelectorAll('.stats-bar-group').forEach(g => {
+            g.classList.toggle('selected', g.dataset.date === date);
+        });
+
+        const container = document.getElementById('admin-stats-detail');
+        if (!container || !date) return;
+
+        const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+        const dt = new Date(date + 'T12:00:00');
+        const label = `${dt.getDate()} ${monthNames[dt.getMonth()]}`;
+
+        const available = (this.players || []).filter(p => (p.preferred_dates || []).includes(date));
+        const unavailable = (this.players || []).filter(p => !(p.preferred_dates || []).includes(date));
+
+        const renderPlayerRow = (p) => {
+            const icon = p.gender === 'M' ? '🎾' : '🎀';
+            const catBadge = p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '';
+            return `<li class="player-item"><div class="d-flex align-center gap-1"><span>${icon}</span><span class="fw-500">${window.app.escapeHtml(p.name)}</span></div>${catBadge}</li>`;
+        };
+
+        container.innerHTML = `
+            <h3 class="font-heading mb-1">${label} <span class="text-light" style="font-weight:400; font-size:0.9rem;">— ${available.length} disponibili, ${unavailable.length} no</span></h3>
+            <div class="stats-detail-columns">
+                <div>
+                    <h4 class="text-success mb-1 text-sm">✓ Disponibili (${available.length})</h4>
+                    <ul class="players-list custom-scrollbar">
+                        ${available.length ? available.map(renderPlayerRow).join('') : '<li class="text-light p-1 text-center">Nessuno</li>'}
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-danger mb-1 text-sm">✕ Non disponibili (${unavailable.length})</h4>
+                    <ul class="players-list custom-scrollbar">
+                        ${unavailable.length ? unavailable.map(renderPlayerRow).join('') : '<li class="text-light p-1 text-center">Nessuno</li>'}
+                    </ul>
+                </div>
+            </div>
+        `;
     },
 
     renderGroups() {

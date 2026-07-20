@@ -263,6 +263,7 @@
 
                 <div class="tournament-tabs mb-2">
                     <button class="tab-btn admin-tab-btn active" data-tab="admin-giocatori">Giocatori</button>
+                    <button class="tab-btn admin-tab-btn" data-tab="admin-statistiche">Statistiche</button>
                     <button class="tab-btn admin-tab-btn" data-tab="admin-gironi">Gironi</button>
                     <button class="tab-btn admin-tab-btn" data-tab="admin-partite">Risultati</button>
                     <button class="tab-btn admin-tab-btn" data-tab="admin-torneo">Gestione Torneo</button>
@@ -293,6 +294,24 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Admin Tab: Statistiche -->
+                <div id="tab-admin-statistiche" class="admin-tab-content hidden">
+                    <div class="card glass mb-2">
+                        <div class="d-flex justify-between align-center mb-1" style="flex-wrap:wrap; gap:0.5rem;">
+                            <h3 class="font-heading">Disponibilità per giorno</h3>
+                            <div id="stats-summary-line" class="text-sm text-light"><!-- JS --></div>
+                        </div>
+                        <p class="text-sm text-light mb-2">Ogni barra è un giorno del torneo. Clicca una barra per vedere chi ci sarebbe e chi no.</p>
+                        <div id="admin-stats-chart" class="stats-chart-wrap custom-scrollbar">
+                            <!-- JS: SVG bar chart -->
+                        </div>
+                    </div>
+
+                    <div class="card glass" id="admin-stats-detail">
+                        <!-- JS: day detail -->
                     </div>
                 </div>
 
