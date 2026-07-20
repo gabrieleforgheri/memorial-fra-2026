@@ -192,7 +192,7 @@ const registrationApp = {
 
             // Generate dates from Jul 25 to Aug 25
             const startDate = new Date('2026-07-25');
-            const endDate = new Date('2026-08-25');
+            const endDate = new Date('2026-08-20');
             const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
             container.innerHTML = '';

@@ -44,6 +44,12 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: 'Devi selezionare almeno una data' });
     }
 
+    const TOURNAMENT_DATE_MIN = '2026-07-25';
+    const TOURNAMENT_DATE_MAX = '2026-08-20';
+    if (preferred_dates.some(d => d < TOURNAMENT_DATE_MIN || d > TOURNAMENT_DATE_MAX)) {
+        return res.status(400).json({ error: `Le date devono essere comprese tra il 25 Lug e il 20 Ago` });
+    }
+
     const rating = parseInt(self_rating);
     if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
         return res.status(400).json({ error: 'Autovalutazione deve essere un numero tra 1 e 10' });
