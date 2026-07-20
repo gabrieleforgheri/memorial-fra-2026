@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2° Memorial Fra - FITP Torneo di Racchettoni</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="particles-bg"></div>
+    <div id="toast-container"></div>
+    <div id="loader" class="hidden">
+        <div class="spinner"></div>
+    </div>
+
+    <nav class="navbar glass">
+        <div class="nav-brand">
+            <span class="text-gradient font-heading fw-800">MEMORIAL FRA</span>
+        </div>
+        <button class="mobile-menu-btn" id="mobile-menu-btn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <ul class="nav-links" id="nav-links">
+            <li><a href="#/" class="nav-link" data-target="home">Home</a></li>
+            <li><a href="#/register" class="nav-link" data-target="register">Iscriviti</a></li>
+            <li><a href="#/tournament" class="nav-link" data-target="tournament">Torneo</a></li>
+            <li><a href="#/admin" class="nav-link" data-target="admin">Admin</a></li>
+        </ul>
+    </nav>
+
+    <main id="app-content">
+        <!-- HOME VIEW -->
+        <section id="view-home" class="view active fade-in">
+            <div class="hero">
+                <div class="hero-content">
+                    <div class="badge glow">FITP Approved</div>
+                    <h1 class="hero-title">2° Memorial Fra</h1>
+                    <h2 class="hero-subtitle">Torneo di Racchettoni</h2>
+                    <div class="tournament-status" id="home-tournament-status">
+                        <span class="status-dot"></span> <span id="home-status-text">Stato: Iscrizioni Aperte</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="home-cards container">
+                <a href="#/register" class="card glass interactive-card">
+                    <div class="card-icon text-accent">✍️</div>
+                    <h3 class="font-heading">Registrazione</h3>
+                    <p>Iscriviti al torneo e preparati a scendere in campo.</p>
+                </a>
+                <a href="#/tournament" class="card glass interactive-card">
+                    <div class="card-icon text-secondary">🏆</div>
+                    <h3 class="font-heading">Tabellone</h3>
+                    <p>Segui i risultati in diretta, vedi gironi e fasi finali.</p>
+                </a>
+                <a href="#/admin" class="card glass interactive-card">
+                    <div class="card-icon text-white">⚙️</div>
+                    <h3 class="font-heading">Admin</h3>
+                    <p>Area riservata alla direzione torneo.</p>
+                </a>
+            </div>
+        </section>
+
+        <!-- REGISTER VIEW -->
+        <section id="view-register" class="view hidden container pt-navbar">
+            <div class="header-section text-center">
+                <h1 class="font-heading text-gradient mb-1">Iscrizione Giocatori</h1>
+                <p class="text-light">Unisciti ai <span id="total-registered" class="text-accent fw-700">0</span> giocatori già iscritti</p>
+            </div>
+
+            <div class="register-layout">
+                <div class="register-form-container card glass">
+                    <h2 class="font-heading mb-2">Nuova Iscrizione</h2>
+                    <form id="register-form">
+                        <div class="form-group">
+                            <label for="player-name">Nome e Cognome</label>
+                            <input type="text" id="player-name" required placeholder="Es: Mario Rossi" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label>Genere</label>
+                            <div class="gender-toggle">
+                                <label class="gender-option">
+                                    <input type="radio" name="gender" value="M" checked>
+                                    <span class="gender-btn">Uomo (ATP)</span>
+                                </label>
+                                <label class="gender-option">
+                                    <input type="radio" name="gender" value="F">
+                                    <span class="gender-btn">Donna (WTA)</span>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 glow-btn mt-2">Iscriviti Ora</button>
+                    </form>
+                </div>
+
+                <div class="registered-players-container">
+                    <div class="players-column card glass">
+                        <h3 class="font-heading text-accent mb-1 border-bottom pb-1">ATP (Maschile) - <span id="count-m">0</span></h3>
+                        <ul id="players-list-m" class="players-list custom-scrollbar"></ul>
+                    </div>
+                    <div class="players-column card glass">
+                        <h3 class="font-heading text-secondary mb-1 border-bottom pb-1">WTA (Femminile) - <span id="count-f">0</span></h3>
+                        <ul id="players-list-f" class="players-list custom-scrollbar"></ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TOURNAMENT VIEW -->
+        <section id="view-tournament" class="view hidden container pt-navbar">
+            <div class="header-section text-center">
+                <h1 class="font-heading text-gradient mb-1">Torneo Live</h1>
+                <div class="tournament-tabs">
+                    <button class="tab-btn active" data-tab="gironi">Gironi</button>
+                    <button class="tab-btn" data-tab="partite">Partite</button>
+                    <button class="tab-btn" data-tab="bracket">Bracket</button>
+                    <button class="tab-btn" data-tab="classifica">Classifica</button>
+                </div>
+                <div class="gender-filters mt-1">
+                    <button class="filter-btn active" data-gender="all">Tutti</button>
+                    <button class="filter-btn" data-gender="M">ATP</button>
+                    <button class="filter-btn" data-gender="F">WTA</button>
+                </div>
+            </div>
+
+            <!-- Tab Content: Gironi -->
+            <div id="tab-gironi" class="tab-content active">
+                <div id="gironi-container" class="gironi-grid">
+                    <!-- Injected via JS -->
+                    <div class="text-center w-100 py-3 text-light">Caricamento gironi...</div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Partite -->
+            <div id="tab-partite" class="tab-content hidden">
+                <div class="matches-filter mb-2">
+                    <select id="match-phase-filter" class="form-input w-auto d-inline">
+                        <option value="all">Tutte le fasi</option>
+                        <option value="group">Fase a Gironi</option>
+                        <option value="elimination">Eliminazione Diretta</option>
+                    </select>
+                </div>
+                <div id="matches-container" class="matches-list">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+
+            <!-- Tab Content: Bracket -->
+            <div id="tab-bracket" class="tab-content hidden">
+                <div class="bracket-wrapper custom-scrollbar">
+                    <div id="bracket-container" class="bracket">
+                        <!-- Injected via JS (SVG + CSS) -->
+                        <div class="text-center w-100 py-3 text-light">Bracket non ancora disponibile.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Classifica -->
+            <div id="tab-classifica" class="tab-content hidden">
+                <div id="classifica-container" class="classifica-tables">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ADMIN VIEW -->
+        <section id="view-admin" class="view hidden container pt-navbar">
+            
+            <!-- Login -->
+            <div id="admin-login-view" class="admin-login card glass mx-auto mt-3 fade-in" style="max-width: 400px;">
+                <h2 class="font-heading text-center mb-2">Accesso Admin</h2>
+                <form id="admin-login-form">
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="admin-password" class="form-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 glow-btn mt-1">Accedi</button>
+                </form>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="admin-dashboard-view" class="admin-dashboard hidden fade-in">
+                <div class="dashboard-header d-flex justify-between align-center mb-2 card glass">
+                    <div>
+                        <h2 class="font-heading">Pannello di Controllo</h2>
+                        <span id="admin-tournament-status" class="badge">Caricamento stato...</span>
+                    </div>
+                    <button id="admin-logout-btn" class="btn btn-outline text-danger">Logout</button>
+                </div>
+
+                <div class="tournament-tabs mb-2">
+                    <button class="tab-btn admin-tab-btn active" data-tab="admin-giocatori">Giocatori</button>
+                    <button class="tab-btn admin-tab-btn" data-tab="admin-gironi">Gironi</button>
+                    <button class="tab-btn admin-tab-btn" data-tab="admin-partite">Risultati</button>
+                    <button class="tab-btn admin-tab-btn" data-tab="admin-torneo">Gestione Torneo</button>
+                </div>
+
+                <!-- Admin Tab: Giocatori -->
+                <div id="tab-admin-giocatori" class="admin-tab-content active">
+                    <div class="card glass mb-2">
+                        <div class="d-flex justify-between align-center mb-1">
+                            <h3 class="font-heading">Gestione Categorie</h3>
+                            <div class="stats-summary" id="admin-players-stats">
+                                <!-- JS -->
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table w-100" id="admin-players-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Genere</th>
+                                        <th>Categoria (F/N)</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Tab: Gironi -->
+                <div id="tab-admin-gironi" class="admin-tab-content hidden">
+                    <div class="card glass mb-2 text-center">
+                        <h3 class="font-heading mb-1">Generazione Gironi</h3>
+                        <p class="text-light mb-2">Il sistema creerà automaticamente gironi bilanciati basati sulle categorie F (Forti) e N (Normali).</p>
+                        <button id="btn-generate-groups" class="btn btn-primary glow-btn">Genera Gironi Automaticamente</button>
+                    </div>
+                    <div id="admin-groups-preview" class="gironi-grid mt-2">
+                        <!-- JS -->
+                    </div>
+                </div>
+
+                <!-- Admin Tab: Risultati -->
+                <div id="tab-admin-partite" class="admin-tab-content hidden">
+                    <div class="card glass">
+                        <h3 class="font-heading mb-1">Inserimento Risultati</h3>
+                        <div class="matches-list" id="admin-matches-list">
+                            <!-- JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Tab: Gestione Torneo -->
+                <div id="tab-admin-torneo" class="admin-tab-content hidden">
+                    <div class="card glass mb-2">
+                        <h3 class="font-heading mb-1">Controllo Fasi</h3>
+                        <div class="tournament-stepper mb-3" id="tournament-stepper">
+                            <div class="step" data-phase="registration">Iscrizioni</div>
+                            <div class="step" data-phase="groups">Fase a Gironi</div>
+                            <div class="step" data-phase="elimination">Eliminazione Diretta</div>
+                            <div class="step" data-phase="completed">Completato</div>
+                        </div>
+                        
+                        <div class="d-flex gap-1 justify-center">
+                            <button id="btn-start-tournament" class="btn btn-primary glow-btn">Avvia Torneo</button>
+                            <button id="btn-advance-phase" class="btn btn-secondary">Avanza di Fase</button>
+                        </div>
+                    </div>
+
+                    <div class="card glass border-danger mt-2">
+                        <h3 class="font-heading text-danger mb-1">Danger Zone</h3>
+                        <p class="mb-1 text-light">Queste azioni sono irreversibili.</p>
+                        <button id="btn-reset-tournament" class="btn btn-danger">Reset Completo Torneo</button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Score Input Modal -->
+    <div id="score-modal" class="modal hidden">
+        <div class="modal-content card glass border-accent">
+            <h3 class="font-heading mb-2 text-center">Inserisci Risultato</h3>
+            <div class="score-input-layout mb-2">
+                <div class="team-score text-center">
+                    <div id="modal-team1-name" class="fw-600 mb-1">Team 1</div>
+                    <input type="number" id="modal-score1" class="form-input score-input text-center" min="0" value="0">
+                </div>
+                <div class="score-separator text-accent font-heading">VS</div>
+                <div class="team-score text-center">
+                    <div id="modal-team2-name" class="fw-600 mb-1">Team 2</div>
+                    <input type="number" id="modal-score2" class="form-input score-input text-center" min="0" value="0">
+                </div>
+            </div>
+            <div class="points-preview text-center mb-2 bg-dark-soft p-1 rounded">
+                <p class="text-light text-sm mb-05">Punti stimati:</p>
+                <div id="modal-points-preview" class="d-flex justify-between fw-600">
+                    <span class="text-success">T1: 0 pt</span>
+                    <span class="text-success">T2: 0 pt</span>
+                </div>
+            </div>
+            <div class="d-flex gap-1">
+                <button id="btn-cancel-score" class="btn btn-outline flex-1">Annulla</button>
+                <button id="btn-save-score" class="btn btn-primary flex-1 glow-btn">Salva</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/registration.js"></script>
+    <script src="js/bracket.js"></script>
+    <script src="js/tournament.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
