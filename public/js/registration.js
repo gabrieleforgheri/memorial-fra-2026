@@ -108,11 +108,11 @@ const registrationApp = {
                 const dayEl = document.createElement('div');
                 dayEl.className = 'calendar-day';
                 
-                // Heat-map coloring based on votes
-                if (votes > 0 && maxVotes > 0) {
-                    const intensity = Math.max(0.15, votes / maxVotes);
+                // Heat-map: absolute scale, full red at 10+ votes
+                if (votes > 0) {
+                    const intensity = Math.min(1, votes / 10) * 0.8 + 0.1;
                     dayEl.style.backgroundColor = `rgba(255, 71, 87, ${intensity})`;
-                    dayEl.style.borderColor = `rgba(255, 71, 87, ${Math.min(1, intensity + 0.3)})`;
+                    dayEl.style.borderColor = `rgba(255, 71, 87, ${Math.min(1, intensity + 0.2)})`;
                 }
                 
                 // Restore selection state
