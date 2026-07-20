@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const db = require('../db/database');
-const { generateGroupsLogistics, calculateScorePoints } = require('../utils/tournament');
+const { generateGroupsLogistics, calculateScorePoints, validateBalancedCategories } = require('../utils/tournament');
 
 router.use(auth); // Protect all admin routes
 
@@ -53,14 +53,23 @@ router.delete('/players/:id', (req, res) => {
 // Auto-generate groups
 router.post('/groups/generate', (req, res) => {
     try {
+        const males = db.prepare("SELECT * FROM players WHERE gender = 'M' AND category IS NOT NULL").all();
+        const females = db.prepare("SELECT * FROM players WHERE gender = 'F' AND category IS NOT NULL").all();
+
+        const maleBalance = validateBalancedCategories(males);
+        if (!maleBalance.balanced) {
+            return res.status(400).json({ error: `ATP: giocatori Forti (${maleBalance.fCount}) e Normali (${maleBalance.nCount}) non sono in numero uguale. Correggi le categorie prima di generare i gironi.` });
+        }
+        const femaleBalance = validateBalancedCategories(females);
+        if (!femaleBalance.balanced) {
+            return res.status(400).json({ error: `WTA: giocatrici Forti (${femaleBalance.fCount}) e Normali (${femaleBalance.nCount}) non sono in numero uguale. Correggi le categorie prima di generare i gironi.` });
+        }
+
         db.transaction(() => {
             db.prepare('DELETE FROM group_players').run();
             db.prepare('DELETE FROM matches').run();
             db.prepare('DELETE FROM groups').run();
-            
-            const males = db.prepare("SELECT * FROM players WHERE gender = 'M' AND category IS NOT NULL").all();
-            const females = db.prepare("SELECT * FROM players WHERE gender = 'F' AND category IS NOT NULL").all();
-            
+
             const atpGroups = generateGroupsLogistics(males, 'ATP');
             const wtaGroups = generateGroupsLogistics(females, 'WTA');
             
@@ -102,8 +111,16 @@ router.put('/groups/manual', (req, res) => {
     if (!groups || !Array.isArray(groups)) {
         return res.status(400).json({ error: 'Groups array is required' });
     }
-    
+
     try {
+        for (const group of groups) {
+            const players = (group.player_ids || []).map(id => db.prepare('SELECT category FROM players WHERE id = ?').get(id));
+            const { fCount, nCount, balanced } = validateBalancedCategories(players);
+            if (!balanced) {
+                return res.status(400).json({ error: `Girone "${group.name}": Forti (${fCount}) e Normali (${nCount}) non sono in numero uguale.` });
+            }
+        }
+
         db.transaction(() => {
             db.prepare('DELETE FROM group_players').run();
             db.prepare('DELETE FROM matches').run();

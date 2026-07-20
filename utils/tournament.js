@@ -33,6 +33,12 @@ function generateGroupsLogistics(players, type) {
     return groups;
 }
 
+function validateBalancedCategories(players) {
+    const fCount = players.filter(p => p.category === 'F').length;
+    const nCount = players.filter(p => p.category === 'N').length;
+    return { fCount, nCount, balanced: fCount === nCount };
+}
+
 function calculateScorePoints(score1, score2) {
     if (score1 === null || score2 === null) return { pts1: 0, pts2: 0 };
     
@@ -50,5 +56,6 @@ function calculateScorePoints(score1, score2) {
 module.exports = {
     shuffleArray,
     generateGroupsLogistics,
-    calculateScorePoints
+    calculateScorePoints,
+    validateBalancedCategories
 };
