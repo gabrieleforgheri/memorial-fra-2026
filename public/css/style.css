@@ -139,9 +139,28 @@ h1, h2, h3, h4, .font-heading {
     border-top: none;
 }
 .nav-brand {
-    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
     text-transform: uppercase;
     letter-spacing: 1px;
+    min-width: 0;
+}
+.nav-logo {
+    height: 52px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+.nav-brand-text {
+    font-size: 1.3rem;
+    white-space: nowrap;
+}
+#nav-edition-label {
+    vertical-align: middle;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-left: 0.4rem;
+    white-space: nowrap;
 }
 .nav-links {
     list-style: none;
@@ -698,6 +717,13 @@ h1, h2, h3, h4, .font-heading {
 /* Bracket SVG lines injected via JS */
 
 /* Tables */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.table-responsive table {
+    min-width: 640px;
+}
 .data-table {
     width: 100%;
     border-collapse: collapse;
@@ -1221,6 +1247,16 @@ h1, h2, h3, h4, .font-heading {
     }
     #nav-edition-label {
         display: none;
+    }
+    .navbar {
+        padding: 0 1rem;
+    }
+    .nav-logo {
+        height: 34px;
+        margin-right: 8px;
+    }
+    .nav-brand-text {
+        font-size: 1rem;
     }
     .mobile-menu-btn {
         display: flex;
