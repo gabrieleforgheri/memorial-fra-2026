@@ -289,7 +289,7 @@ const registrationApp = {
             li.innerHTML = `
                 <div class="d-flex align-center gap-1">
                     <span>${icon}</span>
-                    <span class="fw-500">${p.name}</span>
+                    <span class="fw-500">${window.app.escapeHtml(p.name)}</span>
                 </div>
                 ${catBadge}
             `;

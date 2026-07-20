@@ -341,7 +341,7 @@ const adminApp = {
 
             tr.innerHTML = `
                 <td>
-                    <input type="text" class="form-input bg-dark-soft p-edit-name" value="${p.name}" data-id="${p.id}" style="padding:0.4rem; max-width:200px;">
+                    <input type="text" class="form-input bg-dark-soft p-edit-name" value="${window.app.escapeHtml(p.name)}" data-id="${p.id}" style="padding:0.4rem; max-width:200px;">
                 </td>
                 <td>${genderLabel}</td>
                 <td style="font-size:0.85rem; max-width:220px;">${formatDates(p.preferred_dates)}</td>
@@ -434,7 +434,7 @@ const adminApp = {
                 <tbody>
                     ${(group.players || []).map(p => `
                         <tr>
-                            <td><span class="fw-500">${p.name}</span></td>
+                            <td><span class="fw-500">${window.app.escapeHtml(p.name)}</span></td>
                             <td>${p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '-'}</td>
                             <td class="fw-700">${p.points || 0}</td>
                             <td>${(p.diff || 0) > 0 ? '+' + p.diff : (p.diff || 0)}</td>
@@ -467,23 +467,23 @@ const adminApp = {
             
             const team1Names = match.team1_name || 'TBD';
             const team2Names = match.team2_name || 'TBD';
-            
+
             const t1Score = match.score_team1 !== null && match.score_team1 !== undefined ? match.score_team1 : '-';
             const t2Score = match.score_team2 !== null && match.score_team2 !== undefined ? match.score_team2 : '-';
-            
+
             const isCompleted = match.completed || match.status === 'completed';
             const typeLabel = match.type === 'ATP' ? '(ATP)' : '(WTA)';
-            
-            let statusDot = isCompleted 
-                ? '<span class="match-status status-completed">✅</span>' 
+
+            let statusDot = isCompleted
+                ? '<span class="match-status status-completed">✅</span>'
                 : '<span class="match-status status-upcoming">⏳</span>';
 
             card.innerHTML = `
                 <div class="match-info" style="flex:1">
-                    <div class="match-phase">${match.phase_name || match.phase} ${typeLabel}</div>
+                    <div class="match-phase">${window.app.escapeHtml(match.phase_name || match.phase)} ${typeLabel}</div>
                     <div class="match-teams">
                         <div class="match-team" style="text-align:right; flex:1">
-                            <span class="match-team-name">${team1Names}</span>
+                            <span class="match-team-name">${window.app.escapeHtml(team1Names)}</span>
                         </div>
                         <div class="match-score-box" style="min-width:80px; justify-content:center">
                             <span class="match-score text-accent">${t1Score}</span>
@@ -491,7 +491,7 @@ const adminApp = {
                             <span class="match-score text-accent">${t2Score}</span>
                         </div>
                         <div class="match-team" style="flex:1">
-                            <span class="match-team-name">${team2Names}</span>
+                            <span class="match-team-name">${window.app.escapeHtml(team2Names)}</span>
                         </div>
                     </div>
                 </div>

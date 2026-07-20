@@ -10,6 +10,16 @@ const app = {
         document.getElementById('loader').classList.add('hidden');
     },
 
+    escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
     toast(message, type = 'success') {
         const container = document.getElementById('toast-container');
         const toast = document.createElement('div');

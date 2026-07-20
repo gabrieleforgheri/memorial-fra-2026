@@ -56,6 +56,10 @@ router.post('/groups/generate', (req, res) => {
         const males = db.prepare("SELECT * FROM players WHERE gender = 'M' AND category IS NOT NULL").all();
         const females = db.prepare("SELECT * FROM players WHERE gender = 'F' AND category IS NOT NULL").all();
 
+        if (males.length === 0 && females.length === 0) {
+            return res.status(400).json({ error: 'Nessun giocatore con categoria assegnata. Assegna F/N prima di generare i gironi.' });
+        }
+
         const maleBalance = validateBalancedCategories(males);
         if (!maleBalance.balanced) {
             return res.status(400).json({ error: `ATP: giocatori Forti (${maleBalance.fCount}) e Normali (${maleBalance.nCount}) non sono in numero uguale. Correggi le categorie prima di generare i gironi.` });
@@ -177,19 +181,28 @@ router.post('/tournament/start', (req, res) => {
 // Update match score
 router.put('/matches/:id/score', (req, res) => {
     const { score_team1, score_team2 } = req.body;
-    
+
     if (score_team1 === undefined || score_team2 === undefined) {
         return res.status(400).json({ error: 'Both scores are required' });
     }
-    
+
+    const s1 = parseInt(score_team1);
+    const s2 = parseInt(score_team2);
+    if (!Number.isInteger(s1) || !Number.isInteger(s2) || s1 < 0 || s2 < 0) {
+        return res.status(400).json({ error: 'Scores must be non-negative integers' });
+    }
+    if (s1 === s2) {
+        return res.status(400).json({ error: 'Il punteggio non può essere un pareggio' });
+    }
+
     try {
-        const { pts1, pts2 } = calculateScorePoints(parseInt(score_team1), parseInt(score_team2));
+        const { pts1, pts2 } = calculateScorePoints(s1, s2);
         
         db.transaction(() => {
             db.prepare(`
                 UPDATE matches SET score_team1 = ?, score_team2 = ?, points_team1 = ?, points_team2 = ?, completed = 1
                 WHERE id = ?
-            `).run(parseInt(score_team1), parseInt(score_team2), pts1, pts2, req.params.id);
+            `).run(s1, s2, pts1, pts2, req.params.id);
             
             // Recalculate group standings for this match's group
             const match = db.prepare('SELECT group_id FROM matches WHERE id = ?').get(req.params.id);

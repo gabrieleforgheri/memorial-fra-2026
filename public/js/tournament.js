@@ -160,7 +160,7 @@ const tournamentApp = {
                         return `
                         <tr class="${rowClass}">
                             <td>
-                                <span class="fw-500">${p.name || '?'}</span>
+                                <span class="fw-500">${window.app.escapeHtml(p.name) || '?'}</span>
                             </td>
                             <td>
                                 ${p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '-'}
@@ -246,10 +246,10 @@ const tournamentApp = {
 
             card.innerHTML = `
                 <div class="match-info">
-                    <div class="match-phase">${match.phase_name || match.phase} ${typeLabel}</div>
+                    <div class="match-phase">${window.app.escapeHtml(match.phase_name || match.phase)} ${typeLabel}</div>
                     <div class="match-teams">
                         <div class="match-team" style="text-align:right">
-                            <span class="match-team-name ${t1Class}">${team1Names}</span>
+                            <span class="match-team-name ${t1Class}">${window.app.escapeHtml(team1Names)}</span>
                         </div>
                         <div class="match-score-box">
                             <span class="match-score ${t1Class}">${t1Score}</span>
@@ -257,7 +257,7 @@ const tournamentApp = {
                             <span class="match-score ${t2Class}">${t2Score}</span>
                         </div>
                         <div class="match-team">
-                            <span class="match-team-name ${t2Class}">${team2Names}</span>
+                            <span class="match-team-name ${t2Class}">${window.app.escapeHtml(team2Names)}</span>
                         </div>
                     </div>
                     ${pointsInfo}
@@ -304,7 +304,7 @@ const tournamentApp = {
                                     <tr>
                                         <td class="fw-600">${i + 1}</td>
                                         <td>
-                                            <span class="fw-500">${p.name}</span>
+                                            <span class="fw-500">${window.app.escapeHtml(p.name)}</span>
                                         </td>
                                         <td>
                                             ${p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '-'}

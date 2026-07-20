@@ -32,7 +32,7 @@ router.get('/dates', (req, res) => {
 router.post('/', (req, res) => {
     const { name, gender, preferred_dates, self_rating } = req.body;
 
-    if (!name || !gender) {
+    if (!name || !name.trim() || !gender) {
         return res.status(400).json({ error: 'Name and gender are required' });
     }
 
@@ -50,7 +50,7 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: `Le date devono essere comprese tra il 25 Lug e il 20 Ago` });
     }
 
-    const rating = parseInt(self_rating);
+    const rating = Number(self_rating);
     if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
         return res.status(400).json({ error: 'Autovalutazione deve essere un numero tra 1 e 10' });
     }
