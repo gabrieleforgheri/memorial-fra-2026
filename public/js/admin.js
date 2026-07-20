@@ -326,15 +326,25 @@ const adminApp = {
             return a.name.localeCompare(b.name);
         });
 
+        const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+        const formatDates = (dates) => {
+            if (!dates || dates.length === 0) return '<span class="text-light">-</span>';
+            return dates.map(d => {
+                const dt = new Date(d + 'T12:00:00');
+                return `${dt.getDate()} ${monthNames[dt.getMonth()]}`;
+            }).join(', ');
+        };
+
         sorted.forEach(p => {
             const tr = document.createElement('tr');
             const genderLabel = p.gender === 'M' ? '<span class="text-accent">ATP</span>' : '<span class="text-secondary">WTA</span>';
-            
+
             tr.innerHTML = `
                 <td>
                     <input type="text" class="form-input bg-dark-soft p-edit-name" value="${p.name}" data-id="${p.id}" style="padding:0.4rem; max-width:200px;">
                 </td>
                 <td>${genderLabel}</td>
+                <td style="font-size:0.85rem; max-width:220px;">${formatDates(p.preferred_dates)}</td>
                 <td class="text-center">${p.self_rating ? `<span class="rating-badge">${p.self_rating}/10</span>` : '<span class="text-light">-</span>'}</td>
                 <td>
                     <select class="form-input bg-dark-soft p-edit-cat" data-id="${p.id}" style="padding:0.4rem; min-width:120px;">

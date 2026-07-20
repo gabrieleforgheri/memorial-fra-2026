@@ -5,6 +5,10 @@ const db = require('../db/database');
 router.get('/', (req, res) => {
     try {
         const players = db.prepare('SELECT * FROM players ORDER BY name').all();
+        const getDates = db.prepare('SELECT date FROM player_dates WHERE player_id = ? ORDER BY date');
+        for (const p of players) {
+            p.preferred_dates = getDates.all(p.id).map(d => d.date);
+        }
         res.json(players);
     } catch (err) {
         res.status(500).json({ error: err.message });
