@@ -93,8 +93,18 @@
                                     <span class="gender-btn">Donna (WTA)</span>
                                 </label>
                             </div>
+                        <div class="form-group mt-2">
+                            <label>Scegli la tua data preferita (25 Lug - 25 Ago)</label>
+                            <p class="text-sm text-light mb-1">I giorni in <span style="color: #ff4757">rosso scuro</span> hanno già molte adesioni. Unisciti alla maggioranza!</p>
+                            <div id="date-calendar" class="calendar-grid">
+                                <!-- JS -->
+                            </div>
+                            <input type="hidden" id="preferred-date" required>
+                            <div id="selected-date-display" class="mt-1 text-accent fw-600 hidden">
+                                Data scelta: <span id="selected-date-text"></span>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 glow-btn mt-2">Iscriviti Ora</button>
+                        <button type="submit" class="btn btn-primary w-100 glow-btn mt-2">Iscriviti e Vota</button>
                     </form>
                 </div>
 
@@ -264,6 +274,13 @@
                             <button id="btn-start-tournament" class="btn btn-primary glow-btn">Avvia Torneo</button>
                             <button id="btn-advance-phase" class="btn btn-secondary">Avanza di Fase</button>
                         </div>
+                    </div>
+
+                    <div class="card glass border-warning mt-2">
+                        <h3 class="font-heading text-warning mb-1">Area Test / Date</h3>
+                        <p class="mb-1 text-light">Strumenti per simulazioni o gestione voti.</p>
+                        <button id="btn-reset-simulation" class="btn btn-outline text-warning mb-1 w-100">Ripristina Simulazione (Mantieni Voti e Utenti Veri)</button>
+                        <button id="btn-clear-dates" class="btn btn-outline text-warning w-100">Azzera Tutti i Voti delle Date</button>
                     </div>
 
                     <div class="card glass border-danger mt-2">

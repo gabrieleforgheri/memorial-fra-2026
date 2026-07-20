@@ -105,6 +105,10 @@ const adminApp = {
         bindControl('btn-start-tournament', 'startTournament', 'Avviare il torneo? Le iscrizioni verranno chiuse.', 'Torneo avviato! 🏆');
         bindControl('btn-advance-phase', 'advanceTournament', 'Avanzare alla fase successiva?', 'Fase avanzata con successo!');
         bindControl('btn-reset-tournament', 'resetTournament', '⚠️ ATTENZIONE: Resettare tutto il torneo? Tutti i risultati andranno persi! Questa azione è IRREVERSIBILE.', 'Torneo resettato');
+        
+        // Simulation and Dates
+        bindControl('btn-reset-simulation', 'resetSimulation', 'Ripristinare la simulazione? Tutte le partite, gironi e giocatori finti (senza data votata) verranno eliminati.', 'Simulazione ripristinata');
+        bindControl('btn-clear-dates', 'clearDates', 'Azzzerare tutti i voti delle date per TUTTI i giocatori?', 'Voti date azzerati');
 
         // Score Modal bindings
         const cancelScore = document.getElementById('btn-cancel-score');

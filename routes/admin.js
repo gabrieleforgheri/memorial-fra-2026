@@ -259,6 +259,32 @@ router.post('/tournament/reset', (req, res) => {
     }
 });
 
+// Reset simulation (keeps players who voted for a date)
+router.post('/tournament/reset-simulation', (req, res) => {
+    try {
+        db.transaction(() => {
+            db.prepare('DELETE FROM matches').run();
+            db.prepare('DELETE FROM group_players').run();
+            db.prepare('DELETE FROM groups').run();
+            db.prepare('DELETE FROM players WHERE preferred_date IS NULL').run();
+            db.prepare("UPDATE tournament_state SET phase = 'registration', locked = 0, started_at = NULL WHERE id = 1").run();
+        })();
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Clear all date votes
+router.post('/tournament/clear-dates', (req, res) => {
+    try {
+        db.prepare('UPDATE players SET preferred_date = NULL').run();
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // === Helper functions ===
 
 function recalculateGroupStandings(groupId) {

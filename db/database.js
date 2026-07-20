@@ -12,8 +12,16 @@ CREATE TABLE IF NOT EXISTS players (
   name TEXT NOT NULL,
   gender TEXT NOT NULL CHECK(gender IN ('M', 'F')),
   category TEXT CHECK(category IN ('F', 'N', NULL)),
+  preferred_date TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+// Auto-migrate to add preferred_date if it doesn't exist
+try {
+  db.exec("ALTER TABLE players ADD COLUMN preferred_date TEXT;");
+} catch (err) {
+  // Column likely already exists
+}
 
 CREATE TABLE IF NOT EXISTS groups (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -57,15 +57,19 @@ const api = {
     },
 
     // Public API
-    async registerPlayer(name, gender) {
+    async registerPlayer(name, gender, preferred_date) {
         return this.request('/players', {
             method: 'POST',
-            body: JSON.stringify({ name, gender })
+            body: JSON.stringify({ name, gender, preferred_date })
         });
     },
 
     async getPlayers() {
         return this.request('/players');
+    },
+
+    async getDatesStats() {
+        return this.request('/players/dates');
     },
 
     async getTournamentState() {
@@ -156,6 +160,14 @@ const api = {
 
     async resetTournament() {
         return this.request('/admin/tournament/reset', { method: 'POST' });
+    },
+
+    async resetSimulation() {
+        return this.request('/admin/tournament/reset-simulation', { method: 'POST' });
+    },
+
+    async clearDates() {
+        return this.request('/admin/tournament/clear-dates', { method: 'POST' });
     }
 };
 

@@ -11,8 +11,23 @@ router.get('/', (req, res) => {
     }
 });
 
+router.get('/dates', (req, res) => {
+    try {
+        const dates = db.prepare(`
+            SELECT preferred_date as date, COUNT(*) as count 
+            FROM players 
+            WHERE preferred_date IS NOT NULL 
+            GROUP BY preferred_date
+            ORDER BY preferred_date ASC
+        `).all();
+        res.json(dates);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.post('/', (req, res) => {
-    const { name, gender } = req.body;
+    const { name, gender, preferred_date } = req.body;
     
     if (!name || !gender) {
         return res.status(400).json({ error: 'Name and gender are required' });
@@ -29,8 +44,8 @@ router.post('/', (req, res) => {
             return res.status(403).json({ error: 'Tournament is locked. Registration closed.' });
         }
 
-        const stmt = db.prepare('INSERT INTO players (name, gender) VALUES (?, ?)');
-        const result = stmt.run(name.trim().toUpperCase(), gender);
+        const stmt = db.prepare('INSERT INTO players (name, gender, preferred_date) VALUES (?, ?, ?)');
+        const result = stmt.run(name.trim().toUpperCase(), gender, preferred_date || null);
         
         const newPlayer = db.prepare('SELECT * FROM players WHERE id = ?').get(result.lastInsertRowid);
         res.status(201).json(newPlayer);
