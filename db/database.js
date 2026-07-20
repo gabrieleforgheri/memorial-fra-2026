@@ -75,4 +75,14 @@ try {
   // Column likely already exists
 }
 
+// New table for multiple dates per player
+db.exec(`
+  CREATE TABLE IF NOT EXISTS player_dates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    UNIQUE(player_id, date)
+  );
+`);
+
 module.exports = db;

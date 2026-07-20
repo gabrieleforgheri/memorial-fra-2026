@@ -1,7 +1,10 @@
 // registration.js
 
 const registrationApp = {
+    selectedDates: new Set(),
+
     async init() {
+        this.selectedDates = new Set();
         this.bindEvents();
         await this.loadPlayers();
         await this.loadCalendar();
@@ -20,28 +23,28 @@ const registrationApp = {
         e.preventDefault();
         const nameInput = document.getElementById('player-name');
         const genderInput = document.querySelector('input[name="gender"]:checked');
-        const dateInput = document.getElementById('preferred-date');
         
         if (!nameInput.value.trim() || !genderInput) {
             window.app.toast('Compila tutti i campi', 'error');
             return;
         }
         
-        if (!dateInput.value) {
-            window.app.toast('Devi selezionare una data dal calendario', 'error');
+        if (this.selectedDates.size === 0) {
+            window.app.toast('Devi selezionare almeno una data dal calendario', 'error');
             return;
         }
 
         try {
             window.app.showLoader();
-            await window.api.registerPlayer(nameInput.value.trim(), genderInput.value, dateInput.value);
+            await window.api.registerPlayer(
+                nameInput.value.trim(),
+                genderInput.value,
+                Array.from(this.selectedDates)
+            );
             window.app.toast('Iscrizione completata con successo!');
-            nameInput.value = ''; // reset
-            dateInput.value = ''; // reset
-            document.getElementById('selected-date-display').classList.add('hidden');
-            
-            // clear selected calendar day
-            document.querySelectorAll('.calendar-day.selected').forEach(el => el.classList.remove('selected'));
+            nameInput.value = '';
+            this.selectedDates.clear();
+            this.updateDateDisplay();
             
             await this.loadPlayers();
             await this.loadCalendar();
@@ -50,6 +53,27 @@ const registrationApp = {
         } finally {
             window.app.hideLoader();
         }
+    },
+
+    updateDateDisplay() {
+        const display = document.getElementById('selected-date-display');
+        const textEl = document.getElementById('selected-date-text');
+        
+        if (this.selectedDates.size === 0) {
+            display.classList.add('hidden');
+            return;
+        }
+
+        display.classList.remove('hidden');
+        const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+        
+        const sorted = Array.from(this.selectedDates).sort();
+        const labels = sorted.map(d => {
+            const dt = new Date(d + 'T12:00:00');
+            return `${dt.getDate()} ${monthNames[dt.getMonth()]}`;
+        });
+        
+        textEl.textContent = labels.join(', ') + ` (${labels.length} ${labels.length === 1 ? 'giorno' : 'giorni'})`;
     },
 
     async loadCalendar() {
@@ -70,6 +94,7 @@ const registrationApp = {
             // Generate dates from Jul 25 to Aug 25
             const startDate = new Date('2026-07-25');
             const endDate = new Date('2026-08-25');
+            const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
             
             container.innerHTML = '';
             
@@ -77,21 +102,23 @@ const registrationApp = {
             while (currentDate <= endDate) {
                 const dateStr = currentDate.toISOString().split('T')[0];
                 const dayNum = currentDate.getDate();
-                const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
                 const monthName = monthNames[currentDate.getMonth()];
-                
                 const votes = dateMap[dateStr] || 0;
-                
-                // Calculate color intensity based on votes
-                let bgStyle = '';
-                if (votes > 0 && maxVotes > 0) {
-                    const intensity = Math.max(0.2, votes / maxVotes); // At least 0.2 opacity if it has votes
-                    bgStyle = `style="background-color: rgba(255, 71, 87, ${intensity}); border-color: rgba(255, 71, 87, ${intensity + 0.2});"`;
-                }
                 
                 const dayEl = document.createElement('div');
                 dayEl.className = 'calendar-day';
-                if (bgStyle) dayEl.setAttribute('style', `background-color: rgba(255, 71, 87, ${Math.max(0.2, votes/maxVotes)}); border-color: rgba(255, 71, 87, 0.8);`);
+                
+                // Heat-map coloring based on votes
+                if (votes > 0 && maxVotes > 0) {
+                    const intensity = Math.max(0.15, votes / maxVotes);
+                    dayEl.style.backgroundColor = `rgba(255, 71, 87, ${intensity})`;
+                    dayEl.style.borderColor = `rgba(255, 71, 87, ${Math.min(1, intensity + 0.3)})`;
+                }
+                
+                // Restore selection state
+                if (this.selectedDates.has(dateStr)) {
+                    dayEl.classList.add('selected');
+                }
                 
                 dayEl.innerHTML = `
                     <span class="day-num">${dayNum}</span>
@@ -101,15 +128,14 @@ const registrationApp = {
                 
                 dayEl.dataset.date = dateStr;
                 dayEl.addEventListener('click', () => {
-                    document.querySelectorAll('.calendar-day').forEach(el => el.classList.remove('selected'));
-                    dayEl.classList.add('selected');
-                    
-                    const dateInput = document.getElementById('preferred-date');
-                    dateInput.value = dateStr;
-                    
-                    const display = document.getElementById('selected-date-display');
-                    display.classList.remove('hidden');
-                    document.getElementById('selected-date-text').textContent = `${dayNum} ${monthName}`;
+                    if (this.selectedDates.has(dateStr)) {
+                        this.selectedDates.delete(dateStr);
+                        dayEl.classList.remove('selected');
+                    } else {
+                        this.selectedDates.add(dateStr);
+                        dayEl.classList.add('selected');
+                    }
+                    this.updateDateDisplay();
                 });
                 
                 container.appendChild(dayEl);

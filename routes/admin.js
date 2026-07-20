@@ -266,7 +266,8 @@ router.post('/tournament/reset-simulation', (req, res) => {
             db.prepare('DELETE FROM matches').run();
             db.prepare('DELETE FROM group_players').run();
             db.prepare('DELETE FROM groups').run();
-            db.prepare('DELETE FROM players WHERE preferred_date IS NULL').run();
+            // Keep players that have at least one date vote
+            db.prepare('DELETE FROM players WHERE id NOT IN (SELECT DISTINCT player_id FROM player_dates)').run();
             db.prepare("UPDATE tournament_state SET phase = 'registration', locked = 0, started_at = NULL WHERE id = 1").run();
         })();
         res.json({ success: true });
@@ -278,7 +279,7 @@ router.post('/tournament/reset-simulation', (req, res) => {
 // Clear all date votes
 router.post('/tournament/clear-dates', (req, res) => {
     try {
-        db.prepare('UPDATE players SET preferred_date = NULL').run();
+        db.prepare('DELETE FROM player_dates').run();
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
