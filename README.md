@@ -1,4 +1,4 @@
-# 🏓 2° Memorial Fra - Torneo di Racchettoni
+# 🏓 3° Memorial Fra - Torneo di Racchettoni
 
 Applicazione web per la gestione completa di un torneo di racchettoni (beach tennis), con registrazione giocatori, gestione gironi, bracket ad eliminazione diretta e classifica live.
 
