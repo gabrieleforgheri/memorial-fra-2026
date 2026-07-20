@@ -109,6 +109,9 @@ const app = {
             statusText.textContent = config.text;
             statusContainer.style.borderColor = config.border;
             statusContainer.style.color = config.color;
+
+            const registerCard = document.getElementById('home-register-card');
+            if (registerCard) registerCard.classList.toggle('hidden', state.locked === 1);
         } catch (e) {
             console.error('Error loading home data:', e);
         }

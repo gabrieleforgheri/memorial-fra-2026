@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS players (
   gender TEXT NOT NULL CHECK(gender IN ('M', 'F')),
   category TEXT CHECK(category IN ('F', 'N', NULL)),
   preferred_date TEXT,
+  self_rating INTEGER CHECK(self_rating IS NULL OR (self_rating BETWEEN 1 AND 10)),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -71,6 +72,13 @@ db.exec(schema);
 // Auto-migrate to add preferred_date if it doesn't exist
 try {
   db.exec("ALTER TABLE players ADD COLUMN preferred_date TEXT;");
+} catch (err) {
+  // Column likely already exists
+}
+
+// Auto-migrate to add self_rating if it doesn't exist
+try {
+  db.exec("ALTER TABLE players ADD COLUMN self_rating INTEGER CHECK(self_rating IS NULL OR (self_rating BETWEEN 1 AND 10));");
 } catch (err) {
   // Column likely already exists
 }

@@ -57,10 +57,10 @@ const api = {
     },
 
     // Public API
-    async registerPlayer(name, gender, preferred_dates) {
+    async registerPlayer(name, gender, preferred_dates, self_rating) {
         return this.request('/players', {
             method: 'POST',
-            body: JSON.stringify({ name, gender, preferred_dates })
+            body: JSON.stringify({ name, gender, preferred_dates, self_rating })
         });
     },
 

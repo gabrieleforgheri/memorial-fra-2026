@@ -49,7 +49,7 @@
             </div>
             
             <div class="home-cards container">
-                <a href="#/register" class="card glass interactive-card">
+                <a href="#/register" id="home-register-card" class="card glass interactive-card">
                     <div class="card-icon text-accent">✍️</div>
                     <h3 class="font-heading">Registrazione</h3>
                     <p>Iscriviti al torneo e preparati a scendere in campo.</p>
@@ -77,34 +77,85 @@
             <div class="register-layout">
                 <div class="register-form-container card glass">
                     <h2 class="font-heading mb-2">Nuova Iscrizione</h2>
+
+                    <div class="reg-stepper mb-2">
+                        <div class="reg-step active" data-step="1">
+                            <span class="reg-step-num">1</span>
+                            <span class="reg-step-label">Generalità</span>
+                        </div>
+                        <div class="reg-step" data-step="2">
+                            <span class="reg-step-num">2</span>
+                            <span class="reg-step-label">Calendario</span>
+                        </div>
+                        <div class="reg-step" data-step="3">
+                            <span class="reg-step-num">3</span>
+                            <span class="reg-step-label">Conferma</span>
+                        </div>
+                    </div>
+
                     <form id="register-form">
-                        <div class="form-group">
-                            <label for="player-name">Nome e Cognome</label>
-                            <input type="text" id="player-name" required placeholder="Es: Mario Rossi" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label>Genere</label>
-                            <div class="gender-toggle">
-                                <label class="gender-option">
-                                    <input type="radio" name="gender" value="M" checked>
-                                    <span class="gender-btn">Uomo (ATP)</span>
-                                </label>
-                                <label class="gender-option">
-                                    <input type="radio" name="gender" value="F">
-                                    <span class="gender-btn">Donna (WTA)</span>
-                                </label>
+                        <!-- STEP 1: Generalità -->
+                        <div class="reg-step-panel active" data-step-panel="1">
+                            <div class="form-group">
+                                <label for="player-name">Nome e Cognome</label>
+                                <input type="text" id="player-name" required placeholder="Es: Mario Rossi" class="form-input">
                             </div>
-                        <div class="form-group mt-2" style="margin-bottom: 0.5rem;">
-                            <label>📅 In quali giorni saresti disponibile? (25 Lug - 25 Ago)</label>
-                            <p class="text-sm text-light mb-1">Seleziona <strong>tutti</strong> i giorni in cui sei libero/a. I giorni più <span style="color: #ff4757">rossi</span> hanno già molte adesioni!</p>
-                            <div id="date-calendar" class="calendar-grid">
-                                <!-- JS -->
+                            <div class="form-group">
+                                <label>Genere</label>
+                                <div class="gender-toggle">
+                                    <label class="gender-option">
+                                        <input type="radio" name="gender" value="M" checked>
+                                        <span class="gender-btn">Uomo (ATP)</span>
+                                    </label>
+                                    <label class="gender-option">
+                                        <input type="radio" name="gender" value="F">
+                                        <span class="gender-btn">Donna (WTA)</span>
+                                    </label>
+                                </div>
                             </div>
-                            <div id="selected-date-display" class="mt-1 text-accent fw-600 hidden">
-                                📌 <span id="selected-date-text"></span>
+                            <div class="d-flex justify-end mt-2">
+                                <button type="button" class="btn btn-primary reg-next-btn" data-next="2">Avanti →</button>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 glow-btn mt-2">Iscriviti e Vota</button>
+
+                        <!-- STEP 2: Calendario -->
+                        <div class="reg-step-panel hidden" data-step-panel="2">
+                            <div class="form-group" style="margin-bottom: 0.5rem;">
+                                <label>📅 In quali giorni saresti disponibile? (25 Lug - 25 Ago)</label>
+                                <p class="text-sm text-light mb-1">Seleziona <strong>tutti</strong> i giorni in cui sei libero/a. I giorni più <span style="color: #ff4757">rossi</span> hanno già molte adesioni!</p>
+                                <div id="date-calendar" class="calendar-grid">
+                                    <!-- JS -->
+                                </div>
+                                <div id="selected-date-display" class="mt-1 text-accent fw-600 hidden">
+                                    📌 <span id="selected-date-text"></span>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-between mt-2">
+                                <button type="button" class="btn btn-outline reg-back-btn" data-back="1">← Indietro</button>
+                                <button type="button" class="btn btn-primary reg-next-btn" data-next="3">Avanti →</button>
+                            </div>
+                        </div>
+
+                        <!-- STEP 3: Conferma -->
+                        <div class="reg-step-panel hidden" data-step-panel="3">
+                            <div class="reg-summary mb-2">
+                                <h4 class="font-heading mb-1">Riepilogo Iscrizione</h4>
+                                <div class="reg-summary-row"><span>Nome</span><strong id="summary-name">-</strong></div>
+                                <div class="reg-summary-row"><span>Categoria</span><strong id="summary-gender">-</strong></div>
+                                <div class="reg-summary-row"><span>Date disponibili</span><strong id="summary-dates">-</strong></div>
+                            </div>
+                            <div class="form-group">
+                                <label>🎾 Su una scala da 1 a 10, quanto ti reputi forte a racchettoni?</label>
+                                <p class="text-sm text-light mb-1">Rispondi con sincerità... o con l'ego che preferisci 😏</p>
+                                <div id="strength-scale" class="strength-scale">
+                                    <!-- JS -->
+                                </div>
+                            </div>
+                            <div class="d-flex justify-between mt-2">
+                                <button type="button" class="btn btn-outline reg-back-btn" data-back="2">← Indietro</button>
+                                <button type="submit" class="btn btn-primary glow-btn">Conferma Iscrizione ✅</button>
+                            </div>
+                        </div>
                     </form>
                 </div>
 
@@ -225,6 +276,7 @@
                                     <tr>
                                         <th>Nome</th>
                                         <th>Genere</th>
+                                        <th>Autovalutazione</th>
                                         <th>Categoria (F/N)</th>
                                         <th>Azioni</th>
                                     </tr>

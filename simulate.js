@@ -58,11 +58,13 @@ async function run() {
     const allDates = ['2026-07-28', '2026-08-02', '2026-08-05'];
     
     for (const name of maleNames) {
-        const r = await req('/players', { method: 'POST', body: JSON.stringify({ name, gender: 'M', preferred_dates: allDates }) });
+        const self_rating = 1 + Math.floor(Math.random() * 10);
+        const r = await req('/players', { method: 'POST', body: JSON.stringify({ name, gender: 'M', preferred_dates: allDates, self_rating }) });
         if (r._error) issue('BUG', 'REGISTRAZIONE', `Impossibile registrare ${name}`);
     }
     for (const name of femaleNames) {
-        const r = await req('/players', { method: 'POST', body: JSON.stringify({ name, gender: 'F', preferred_dates: allDates }) });
+        const self_rating = 1 + Math.floor(Math.random() * 10);
+        const r = await req('/players', { method: 'POST', body: JSON.stringify({ name, gender: 'F', preferred_dates: allDates, self_rating }) });
         if (r._error) issue('BUG', 'REGISTRAZIONE', `Impossibile registrare ${name}`);
     }
     
@@ -172,7 +174,7 @@ async function run() {
 
     // 8. VERIFICA BLOCCO REGISTRAZIONI
     console.log('📌 8. Test blocco registrazioni...');
-    const blockedReg = await req('/players', { method: 'POST', body: JSON.stringify({ name: 'HACKER', gender: 'M', preferred_dates: ['2026-08-01'] }) });
+    const blockedReg = await req('/players', { method: 'POST', body: JSON.stringify({ name: 'HACKER', gender: 'M', preferred_dates: ['2026-08-01'], self_rating: 5 }) });
     if (!blockedReg._error) issue('BUG', 'SICUREZZA', 'Registrazione NON bloccata durante torneo!');
     else console.log('  ✅ Registrazione bloccata correttamente\n');
 

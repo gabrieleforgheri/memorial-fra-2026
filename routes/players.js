@@ -26,18 +26,23 @@ router.get('/dates', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-    const { name, gender, preferred_dates } = req.body;
-    
+    const { name, gender, preferred_dates, self_rating } = req.body;
+
     if (!name || !gender) {
         return res.status(400).json({ error: 'Name and gender are required' });
     }
-    
+
     if (gender !== 'M' && gender !== 'F') {
         return res.status(400).json({ error: 'Gender must be M or F' });
     }
 
     if (!preferred_dates || !Array.isArray(preferred_dates) || preferred_dates.length === 0) {
         return res.status(400).json({ error: 'Devi selezionare almeno una data' });
+    }
+
+    const rating = parseInt(self_rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
+        return res.status(400).json({ error: 'Autovalutazione deve essere un numero tra 1 e 10' });
     }
 
     try {
@@ -48,8 +53,8 @@ router.post('/', (req, res) => {
         }
 
         const newPlayer = db.transaction(() => {
-            const stmt = db.prepare('INSERT INTO players (name, gender) VALUES (?, ?)');
-            const result = stmt.run(name.trim().toUpperCase(), gender);
+            const stmt = db.prepare('INSERT INTO players (name, gender, self_rating) VALUES (?, ?, ?)');
+            const result = stmt.run(name.trim().toUpperCase(), gender, rating);
             const playerId = result.lastInsertRowid;
 
             const insertDate = db.prepare('INSERT INTO player_dates (player_id, date) VALUES (?, ?)');

@@ -335,6 +335,7 @@ const adminApp = {
                     <input type="text" class="form-input bg-dark-soft p-edit-name" value="${p.name}" data-id="${p.id}" style="padding:0.4rem; max-width:200px;">
                 </td>
                 <td>${genderLabel}</td>
+                <td class="text-center">${p.self_rating ? `<span class="rating-badge">${p.self_rating}/10</span>` : '<span class="text-light">-</span>'}</td>
                 <td>
                     <select class="form-input bg-dark-soft p-edit-cat" data-id="${p.id}" style="padding:0.4rem; min-width:120px;">
                         <option value="" ${!p.category ? 'selected' : ''}>— Non assegnato</option>

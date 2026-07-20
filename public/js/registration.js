@@ -2,20 +2,107 @@
 
 const registrationApp = {
     selectedDates: new Set(),
+    selectedStrength: null,
+    currentStep: 1,
 
     async init() {
         this.selectedDates = new Set();
+        this.selectedStrength = null;
         this.bindEvents();
+        this.renderStrengthScale();
         await this.loadPlayers();
         await this.loadCalendar();
+        this.goToStep(1);
     },
 
     bindEvents() {
         const form = document.getElementById('register-form');
-        // Prevent multiple bindings if init is called multiple times
         if (form && !form.dataset.bound) {
             form.addEventListener('submit', this.handleRegister.bind(this));
             form.dataset.bound = 'true';
+        }
+
+        document.querySelectorAll('.reg-next-btn').forEach(btn => {
+            if (btn.dataset.bound) return;
+            btn.addEventListener('click', () => this.tryAdvance(parseInt(btn.dataset.next)));
+            btn.dataset.bound = 'true';
+        });
+
+        document.querySelectorAll('.reg-back-btn').forEach(btn => {
+            if (btn.dataset.bound) return;
+            btn.addEventListener('click', () => this.goToStep(parseInt(btn.dataset.back)));
+            btn.dataset.bound = 'true';
+        });
+    },
+
+    tryAdvance(targetStep) {
+        if (this.currentStep === 1) {
+            const nameInput = document.getElementById('player-name');
+            if (!nameInput.value.trim()) {
+                window.app.toast('Inserisci nome e cognome', 'error');
+                return;
+            }
+        }
+
+        if (this.currentStep === 2) {
+            if (this.selectedDates.size === 0) {
+                window.app.toast('Seleziona almeno una data dal calendario', 'error');
+                return;
+            }
+        }
+
+        if (targetStep === 3) this.renderSummary();
+        this.goToStep(targetStep);
+    },
+
+    goToStep(step) {
+        this.currentStep = step;
+
+        document.querySelectorAll('.reg-step-panel').forEach(panel => {
+            panel.classList.toggle('hidden', parseInt(panel.dataset.stepPanel) !== step);
+            panel.classList.toggle('active', parseInt(panel.dataset.stepPanel) === step);
+        });
+
+        document.querySelectorAll('.reg-step').forEach(stepEl => {
+            const n = parseInt(stepEl.dataset.step);
+            stepEl.classList.toggle('active', n === step);
+            stepEl.classList.toggle('done', n < step);
+        });
+    },
+
+    renderSummary() {
+        const name = document.getElementById('player-name').value.trim();
+        const gender = document.querySelector('input[name="gender"]:checked')?.value;
+
+        document.getElementById('summary-name').textContent = name;
+        document.getElementById('summary-gender').textContent = gender === 'M' ? 'Uomo (ATP)' : 'Donna (WTA)';
+
+        const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+        const sorted = Array.from(this.selectedDates).sort();
+        const labels = sorted.map(d => {
+            const dt = new Date(d + 'T12:00:00');
+            return `${dt.getDate()} ${monthNames[dt.getMonth()]}`;
+        });
+        document.getElementById('summary-dates').textContent = labels.join(', ') || '-';
+    },
+
+    renderStrengthScale() {
+        const container = document.getElementById('strength-scale');
+        if (!container) return;
+
+        container.innerHTML = '';
+        for (let i = 1; i <= 10; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'strength-btn';
+            btn.textContent = i;
+            btn.dataset.value = i;
+            btn.addEventListener('click', () => {
+                this.selectedStrength = i;
+                container.querySelectorAll('.strength-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            });
+            container.appendChild(btn);
         }
     },
 
@@ -23,14 +110,21 @@ const registrationApp = {
         e.preventDefault();
         const nameInput = document.getElementById('player-name');
         const genderInput = document.querySelector('input[name="gender"]:checked');
-        
+
         if (!nameInput.value.trim() || !genderInput) {
             window.app.toast('Compila tutti i campi', 'error');
+            this.goToStep(1);
             return;
         }
-        
+
         if (this.selectedDates.size === 0) {
             window.app.toast('Devi selezionare almeno una data dal calendario', 'error');
+            this.goToStep(2);
+            return;
+        }
+
+        if (!this.selectedStrength) {
+            window.app.toast('Seleziona quanto ti reputi forte, da 1 a 10', 'error');
             return;
         }
 
@@ -39,15 +133,20 @@ const registrationApp = {
             await window.api.registerPlayer(
                 nameInput.value.trim(),
                 genderInput.value,
-                Array.from(this.selectedDates)
+                Array.from(this.selectedDates),
+                this.selectedStrength
             );
             window.app.toast('Iscrizione completata con successo!');
+
             nameInput.value = '';
             this.selectedDates.clear();
+            this.selectedStrength = null;
             this.updateDateDisplay();
-            
+            document.querySelectorAll('.strength-btn.selected').forEach(b => b.classList.remove('selected'));
+
             await this.loadPlayers();
             await this.loadCalendar();
+            this.goToStep(1);
         } catch (error) {
             window.app.toast(error.message || 'Errore durante l\'iscrizione', 'error');
         } finally {
@@ -58,7 +157,7 @@ const registrationApp = {
     updateDateDisplay() {
         const display = document.getElementById('selected-date-display');
         const textEl = document.getElementById('selected-date-text');
-        
+
         if (this.selectedDates.size === 0) {
             display.classList.add('hidden');
             return;
@@ -66,22 +165,22 @@ const registrationApp = {
 
         display.classList.remove('hidden');
         const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-        
+
         const sorted = Array.from(this.selectedDates).sort();
         const labels = sorted.map(d => {
             const dt = new Date(d + 'T12:00:00');
             return `${dt.getDate()} ${monthNames[dt.getMonth()]}`;
         });
-        
+
         textEl.textContent = labels.join(', ') + ` (${labels.length} ${labels.length === 1 ? 'giorno' : 'giorni'})`;
     },
 
     async loadCalendar() {
         const container = document.getElementById('date-calendar');
         if (!container) return;
-        
+
         container.innerHTML = '<div class="text-light">Caricamento calendario...</div>';
-        
+
         try {
             const stats = await window.api.getDatesStats();
             const dateMap = {};
@@ -90,42 +189,42 @@ const registrationApp = {
                 dateMap[s.date] = s.count;
                 if (s.count > maxVotes) maxVotes = s.count;
             });
-            
+
             // Generate dates from Jul 25 to Aug 25
             const startDate = new Date('2026-07-25');
             const endDate = new Date('2026-08-25');
             const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-            
+
             container.innerHTML = '';
-            
+
             let currentDate = new Date(startDate);
             while (currentDate <= endDate) {
                 const dateStr = currentDate.toISOString().split('T')[0];
                 const dayNum = currentDate.getDate();
                 const monthName = monthNames[currentDate.getMonth()];
                 const votes = dateMap[dateStr] || 0;
-                
+
                 const dayEl = document.createElement('div');
                 dayEl.className = 'calendar-day';
-                
+
                 // Heat-map: absolute scale, full red at 10+ votes
                 if (votes > 0) {
                     const intensity = Math.min(1, votes / 10) * 0.8 + 0.1;
                     dayEl.style.backgroundColor = `rgba(255, 71, 87, ${intensity})`;
                     dayEl.style.borderColor = `rgba(255, 71, 87, ${Math.min(1, intensity + 0.2)})`;
                 }
-                
+
                 // Restore selection state
                 if (this.selectedDates.has(dateStr)) {
                     dayEl.classList.add('selected');
                 }
-                
+
                 dayEl.innerHTML = `
                     <span class="day-num">${dayNum}</span>
                     <span class="month-name">${monthName}</span>
                     <span class="vote-count">${votes} <small>voti</small></span>
                 `;
-                
+
                 dayEl.dataset.date = dateStr;
                 dayEl.addEventListener('click', () => {
                     if (this.selectedDates.has(dateStr)) {
@@ -137,7 +236,7 @@ const registrationApp = {
                     }
                     this.updateDateDisplay();
                 });
-                
+
                 container.appendChild(dayEl);
                 currentDate.setDate(currentDate.getDate() + 1);
             }
@@ -150,13 +249,13 @@ const registrationApp = {
         try {
             const players = await window.api.getPlayers();
             if (!players) return;
-            
+
             const males = players.filter(p => p.gender === 'M');
             const females = players.filter(p => p.gender === 'F');
 
             this.renderList('players-list-m', males);
             this.renderList('players-list-f', females);
-            
+
             document.getElementById('count-m').textContent = males.length;
             document.getElementById('count-f').textContent = females.length;
             document.getElementById('total-registered').textContent = players.length;
@@ -169,9 +268,9 @@ const registrationApp = {
     renderList(containerId, players) {
         const container = document.getElementById(containerId);
         if (!container) return;
-        
+
         container.innerHTML = '';
-        
+
         if (players.length === 0) {
             container.innerHTML = '<li class="text-light p-1 text-center">Nessun iscritto</li>';
             return;
@@ -180,7 +279,7 @@ const registrationApp = {
         players.forEach(p => {
             const li = document.createElement('li');
             li.className = 'player-item';
-            
+
             let icon = p.gender === 'M' ? '🎾' : '🎀';
             let catBadge = '';
             if (p.category) {
