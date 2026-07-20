@@ -65,6 +65,159 @@
                     <p>Area riservata alla direzione torneo.</p>
                 </a>
             </div>
+
+            <!-- REGOLAMENTO -->
+            <section class="container rules-section">
+                <div class="header-section text-center">
+                    <h2 class="font-heading text-gradient mb-1">Come funziona il torneo</h2>
+                    <p class="text-light">Dai gironi alla finale, passo per passo.</p>
+                </div>
+
+                <div class="rules-step">
+                    <div class="rules-step-text">
+                        <span class="rules-step-num">1</span>
+                        <h3 class="font-heading">Fase a gironi</h3>
+                        <p>Per ogni categoria (ATP e WTA) ci sono 2 gironi da 4 giocatori: 2 <span class="text-accent fw-600">Forti (F)</span> e 2 <span class="text-secondary fw-600">Normali (N)</span>. Si gioca in coppie miste: ogni Forte gioca una volta con ciascun Normale, per 2 partite a girone.</p>
+                    </div>
+                    <div class="rules-step-diagram">
+                        <svg viewBox="0 0 280 170" class="rules-svg" role="img" aria-label="Un girone ha 2 Forti e 2 Normali">
+                            <rect x="10" y="10" width="260" height="150" rx="14" class="rules-box" />
+                            <text x="140" y="34" text-anchor="middle" class="rules-box-title">GIRONE</text>
+                            <circle cx="90" cy="75" r="22" class="rules-chip-f" /><text x="90" y="81" text-anchor="middle" class="rules-chip-label">F1</text>
+                            <circle cx="90" cy="130" r="22" class="rules-chip-f" /><text x="90" y="136" text-anchor="middle" class="rules-chip-label">F2</text>
+                            <circle cx="190" cy="75" r="22" class="rules-chip-n" /><text x="190" y="81" text-anchor="middle" class="rules-chip-label">N1</text>
+                            <circle cx="190" cy="130" r="22" class="rules-chip-n" /><text x="190" y="136" text-anchor="middle" class="rules-chip-label">N2</text>
+                            <path d="M110,75 L170,75" class="rules-link" />
+                            <path d="M110,75 L170,130" class="rules-link" />
+                            <path d="M110,130 L170,75" class="rules-link" />
+                            <path d="M110,130 L170,130" class="rules-link" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rules-step reverse">
+                    <div class="rules-step-text">
+                        <span class="rules-step-num">2</span>
+                        <h3 class="font-heading">Punteggio delle partite</h3>
+                        <p>Ogni partita assegna punti in base al margine:</p>
+                        <div class="rules-points-table">
+                            <div class="rules-points-row"><span>Vittoria netta <em>(es. 6-3)</em></span><strong class="text-success">3 pt</strong><strong class="text-danger">0 pt</strong></div>
+                            <div class="rules-points-row"><span>Vittoria al tie-break <em>(es. 6-5)</em></span><strong class="text-success">2 pt</strong><strong class="text-danger">1 pt</strong></div>
+                        </div>
+                    </div>
+                    <div class="rules-step-diagram">
+                        <svg viewBox="0 0 280 170" class="rules-svg" role="img" aria-label="Punteggio: vittoria netta 3 a 0, tie-break 2 a 1">
+                            <rect x="10" y="15" width="260" height="60" rx="12" class="rules-box" />
+                            <text x="30" y="40" class="rules-box-title" text-anchor="start">6-3</text>
+                            <text x="250" y="40" text-anchor="end" class="rules-small-label">netta</text>
+                            <text x="30" y="62" class="rules-score-big text-success" text-anchor="start">3</text>
+                            <text x="70" y="62" class="rules-small-label" text-anchor="start">–</text>
+                            <text x="90" y="62" class="rules-score-big text-danger" text-anchor="start">0</text>
+                            <rect x="10" y="95" width="260" height="60" rx="12" class="rules-box" />
+                            <text x="30" y="120" class="rules-box-title" text-anchor="start">6-5</text>
+                            <text x="250" y="120" text-anchor="end" class="rules-small-label">tie-break</text>
+                            <text x="30" y="142" class="rules-score-big text-success" text-anchor="start">2</text>
+                            <text x="70" y="142" class="rules-small-label" text-anchor="start">–</text>
+                            <text x="90" y="142" class="rules-score-big text-danger" text-anchor="start">1</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rules-step">
+                    <div class="rules-step-text">
+                        <span class="rules-step-num">3</span>
+                        <h3 class="font-heading">Chi passa, e dove</h3>
+                        <p>Il <span class="text-accent fw-600">miglior Forte</span> e il <span class="text-secondary fw-600">miglior Normale</span> di ogni girone (per punti, poi differenza game) vanno subito in <strong>Semifinale 1</strong>, in coppia con l'omologo dell'altro girone <em>invertito</em>: Forte del girone A con Normale del girone B, e viceversa.</p>
+                        <p>Gli altri due di ogni girone finiscono nel <strong>Lower Bracket</strong>: un girone aggiuntivo tra chi non si è qualificato direttamente, da cui usciranno i due che giocheranno la Semifinale 2.</p>
+                    </div>
+                    <div class="rules-step-diagram">
+                        <svg viewBox="0 0 300 200" class="rules-svg" role="img" aria-label="Il migliore di ogni girone va in semifinale incrociato con l'altro girone, gli altri due nel lower bracket">
+                            <rect x="10" y="10" width="120" height="80" rx="10" class="rules-box" />
+                            <text x="70" y="27" text-anchor="middle" class="rules-small-label">GIRONE A</text>
+                            <circle cx="45" cy="55" r="16" class="rules-chip-f" /><text x="45" y="60" text-anchor="middle" class="rules-chip-label-sm">F</text>
+                            <circle cx="95" cy="55" r="16" class="rules-chip-n" /><text x="95" y="60" text-anchor="middle" class="rules-chip-label-sm">N</text>
+                            <circle cx="45" cy="80" r="10" class="rules-chip-f-dim" /><text x="45" y="84" text-anchor="middle" class="rules-chip-label-xs">f</text>
+                            <circle cx="95" cy="80" r="10" class="rules-chip-n-dim" /><text x="95" y="84" text-anchor="middle" class="rules-chip-label-xs">n</text>
+
+                            <rect x="170" y="10" width="120" height="80" rx="10" class="rules-box" />
+                            <text x="230" y="27" text-anchor="middle" class="rules-small-label">GIRONE B</text>
+                            <circle cx="205" cy="55" r="16" class="rules-chip-f" /><text x="205" y="60" text-anchor="middle" class="rules-chip-label-sm">F</text>
+                            <circle cx="255" cy="55" r="16" class="rules-chip-n" /><text x="255" y="60" text-anchor="middle" class="rules-chip-label-sm">N</text>
+                            <circle cx="205" cy="80" r="10" class="rules-chip-f-dim" /><text x="205" y="84" text-anchor="middle" class="rules-chip-label-xs">f</text>
+                            <circle cx="255" cy="80" r="10" class="rules-chip-n-dim" /><text x="255" y="84" text-anchor="middle" class="rules-chip-label-xs">n</text>
+
+                            <path d="M45,71 Q150,100 255,71" class="rules-link-cross" />
+                            <path d="M205,71 Q150,45 95,71" class="rules-link-cross" />
+
+                            <rect x="70" y="105" width="160" height="30" rx="8" class="rules-box-accent" />
+                            <text x="150" y="125" text-anchor="middle" class="rules-box-title-sm">SEMIFINALE 1</text>
+                            <path d="M70,90 L70,105 M230,90 L230,105" class="rules-link" />
+
+                            <rect x="70" y="160" width="160" height="30" rx="8" class="rules-box-muted" />
+                            <text x="150" y="180" text-anchor="middle" class="rules-box-title-sm">LOWER BRACKET</text>
+                            <path d="M45,90 L100,160 M95,90 L120,160 M205,90 L180,160 M255,90 L200,160" class="rules-link-dim" />
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rules-step reverse">
+                    <div class="rules-step-text">
+                        <span class="rules-step-num">4</span>
+                        <h3 class="font-heading">Il tabellone finale</h3>
+                        <p><strong>Semifinale 1:</strong> le due coppie qualificate direttamente si sfidano. Chi vince va in <strong>finale così com'è</strong>, senza cambiare compagno.</p>
+                        <p><strong>Semifinale 2:</strong> chi perde la Semifinale 1 non è eliminato — sfida i due migliori del Lower Bracket per l'ultimo posto in finale.</p>
+                    </div>
+                    <div class="rules-step-diagram">
+                        <svg viewBox="0 0 300 230" class="rules-svg" role="img" aria-label="Il vincitore della semifinale 1 va in finale invariato, il perdente gioca la semifinale 2 contro i qualificati del lower bracket">
+                            <rect x="20" y="10" width="150" height="34" rx="8" class="rules-box-accent" />
+                            <text x="95" y="31" text-anchor="middle" class="rules-box-title-sm">SEMIFINALE 1</text>
+
+                            <rect x="180" y="10" width="100" height="34" rx="8" class="rules-box-muted" />
+                            <text x="230" y="31" text-anchor="middle" class="rules-small-label">LOWER BRACKET</text>
+
+                            <path d="M60,44 L60,80" class="rules-link" />
+                            <text x="66" y="65" class="rules-small-label">vince</text>
+                            <path d="M60,80 L60,190" class="rules-link" />
+
+                            <path d="M130,44 L130,90" class="rules-link-dim" />
+                            <text x="136" y="70" class="rules-small-label-dim">perde</text>
+
+                            <path d="M230,44 L230,90" class="rules-link-dim" />
+                            <text x="236" y="65" class="rules-small-label-dim">i 2 migliori</text>
+
+                            <rect x="90" y="90" width="150" height="34" rx="8" class="rules-box-accent" />
+                            <text x="165" y="111" text-anchor="middle" class="rules-box-title-sm">SEMIFINALE 2</text>
+
+                            <path d="M165,124 L165,190" class="rules-link" />
+                            <text x="171" y="160" class="rules-small-label">vince</text>
+
+                            <rect x="20" y="190" width="220" height="34" rx="8" class="rules-box-accent rules-box-final" />
+                            <text x="130" y="211" text-anchor="middle" class="rules-box-title-sm">FINALE</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rules-step">
+                    <div class="rules-step-text">
+                        <span class="rules-step-num">5</span>
+                        <h3 class="font-heading">In caso di parità</h3>
+                        <p>Per decidere chi passa il turno si guarda, in ordine: <strong>punti</strong>, poi <strong>differenza game</strong> (vinti meno persi), e solo se serve scegliere tra due Forti o due Normali a pari merito, un <strong>sorteggio casuale</strong>.</p>
+                    </div>
+                    <div class="rules-step-diagram">
+                        <svg viewBox="0 0 280 140" class="rules-svg" role="img" aria-label="Ordine di importanza: punti, differenza game, sorteggio casuale">
+                            <rect x="10" y="10" width="260" height="34" rx="8" class="rules-box" />
+                            <text x="26" y="31" class="rules-tier-label">1</text>
+                            <text x="52" y="31" class="rules-box-title-sm" text-anchor="start">PUNTI</text>
+                            <rect x="10" y="53" width="260" height="34" rx="8" class="rules-box" />
+                            <text x="26" y="74" class="rules-tier-label">2</text>
+                            <text x="52" y="74" class="rules-box-title-sm" text-anchor="start">DIFFERENZA GAME</text>
+                            <rect x="10" y="96" width="260" height="34" rx="8" class="rules-box-muted" />
+                            <text x="26" y="117" class="rules-tier-label">3</text>
+                            <text x="52" y="117" class="rules-box-title-sm" text-anchor="start">SORTEGGIO CASUALE</text>
+                        </svg>
+                    </div>
+                </div>
+            </section>
         </section>
 
         <!-- REGISTER VIEW -->

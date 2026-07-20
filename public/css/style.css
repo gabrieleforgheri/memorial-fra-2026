@@ -1024,6 +1024,196 @@ h1, h2, h3, h4, .font-heading {
     }
 }
 
+/* Rules / how-it-works section (home page) */
+.rules-section {
+    margin-top: 4rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border-color);
+}
+.rules-step {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    margin-bottom: 3.5rem;
+    flex-wrap: wrap;
+}
+.rules-step.reverse {
+    flex-direction: row-reverse;
+}
+.rules-step-text {
+    flex: 1 1 320px;
+    min-width: 280px;
+}
+.rules-step-text p {
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+}
+.rules-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+}
+.rules-step-text h3 {
+    margin-bottom: 0.5rem;
+}
+.rules-step-diagram {
+    flex: 1 1 280px;
+    min-width: 240px;
+    display: flex;
+    justify-content: center;
+}
+.rules-svg {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    display: block;
+    overflow: visible;
+}
+.rules-box {
+    fill: rgba(255, 255, 255, 0.03);
+    stroke: var(--border-color);
+    stroke-width: 1;
+}
+.rules-box-accent {
+    fill: rgba(255, 107, 53, 0.12);
+    stroke: var(--accent);
+    stroke-width: 1.5;
+}
+.rules-box-final {
+    stroke-width: 2;
+}
+.rules-box-muted {
+    fill: rgba(148, 163, 184, 0.08);
+    stroke: var(--text-muted);
+    stroke-width: 1;
+    stroke-dasharray: 4 3;
+}
+.rules-box-title {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    fill: var(--text-main);
+}
+.rules-box-title-sm {
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    fill: var(--text-main);
+}
+.rules-small-label {
+    font-family: var(--font-body);
+    font-size: 10px;
+    fill: var(--text-muted);
+}
+.rules-small-label-dim {
+    font-family: var(--font-body);
+    font-size: 9px;
+    fill: var(--text-muted);
+    opacity: 0.7;
+}
+.rules-tier-label {
+    font-family: var(--font-heading);
+    font-size: 14px;
+    font-weight: 800;
+    fill: var(--accent);
+}
+.rules-score-big {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 800;
+}
+.rules-chip-f {
+    fill: var(--accent);
+}
+.rules-chip-n {
+    fill: var(--secondary);
+}
+.rules-chip-f-dim {
+    fill: var(--accent);
+    opacity: 0.35;
+}
+.rules-chip-n-dim {
+    fill: var(--secondary);
+    opacity: 0.35;
+}
+.rules-chip-label {
+    font-family: var(--font-heading);
+    font-size: 13px;
+    font-weight: 700;
+    fill: #fff;
+}
+.rules-chip-label-sm {
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 700;
+    fill: #fff;
+}
+.rules-chip-label-xs {
+    font-family: var(--font-heading);
+    font-size: 9px;
+    font-weight: 700;
+    fill: #fff;
+}
+.rules-link {
+    stroke: var(--text-muted);
+    stroke-width: 1.5;
+    fill: none;
+}
+.rules-link-cross {
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    fill: none;
+    stroke-dasharray: 3 3;
+}
+.rules-link-dim {
+    stroke: var(--text-muted);
+    stroke-width: 1;
+    fill: none;
+    stroke-dasharray: 2 3;
+    opacity: 0.5;
+}
+.rules-points-table {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.rules-points-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.rules-points-row:last-child {
+    border-bottom: none;
+}
+.rules-points-row span {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+.rules-points-row em {
+    font-style: normal;
+    opacity: 0.7;
+}
+@media (max-width: 768px) {
+    .rules-step, .rules-step.reverse {
+        flex-direction: column;
+    }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .register-layout, .home-cards {
