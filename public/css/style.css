@@ -999,6 +999,9 @@ h1, h2, h3, h4, .font-heading {
     .register-layout, .home-cards {
         grid-template-columns: 1fr;
     }
+    #nav-edition-label {
+        display: none;
+    }
     .mobile-menu-btn {
         display: flex;
         flex-direction: column;
