@@ -16,12 +16,7 @@ CREATE TABLE IF NOT EXISTS players (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-// Auto-migrate to add preferred_date if it doesn't exist
-try {
-  db.exec("ALTER TABLE players ADD COLUMN preferred_date TEXT;");
-} catch (err) {
-  // Column likely already exists
-}
+
 
 CREATE TABLE IF NOT EXISTS groups (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,5 +67,12 @@ INSERT OR IGNORE INTO tournament_state (id, phase, locked) VALUES (1, 'registrat
 `;
 
 db.exec(schema);
+
+// Auto-migrate to add preferred_date if it doesn't exist
+try {
+  db.exec("ALTER TABLE players ADD COLUMN preferred_date TEXT;");
+} catch (err) {
+  // Column likely already exists
+}
 
 module.exports = db;
