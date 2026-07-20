@@ -1,0 +1,11 @@
+const db = require('./db/database');
+const m = db.prepare("SELECT * FROM players WHERE gender = 'M' AND category IS NOT NULL").all();
+const f = db.prepare("SELECT * FROM players WHERE gender = 'F' AND category IS NOT NULL").all();
+console.log('Males with cat:', m.length, m.map(p => p.name + ':' + p.category));
+console.log('Females with cat:', f.length, f.map(p => p.name + ':' + p.category));
+const mF = m.filter(p => p.category === 'F');
+const mN = m.filter(p => p.category === 'N');
+console.log('Male F:', mF.length, 'Male N:', mN.length);
+const fF = f.filter(p => p.category === 'F');
+const fN = f.filter(p => p.category === 'N');
+console.log('Female F:', fF.length, 'Female N:', fN.length);

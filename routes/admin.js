@@ -218,19 +218,21 @@ router.post('/tournament/advance', (req, res) => {
             res.json({ success: true, phase: 'elimination' });
             
         } else if (state.phase === 'elimination') {
-            // Check if all semifinal matches are completed
-            const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase IN ('semifinal', 'final') AND completed = 0").get();
-            if (unfinished.cnt > 0) {
-                // If semifinals are done but finals aren't generated, generate them
-                const semisUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND completed = 0").get();
-                if (semisUnfinished.cnt === 0) {
-                    const finalsExist = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
-                    if (finalsExist.cnt === 0) {
-                        generateFinals();
-                        return res.json({ success: true, message: 'Finali generate' });
-                    }
-                }
-                return res.status(400).json({ error: `Ci sono ancora ${unfinished.cnt} partite da completare` });
+            const semisUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND completed = 0").get();
+            const finalsExist = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
+            
+            if (semisUnfinished.cnt > 0) {
+                return res.status(400).json({ error: `Ci sono ancora ${semisUnfinished.cnt} semifinali non completate` });
+            }
+            
+            if (finalsExist.cnt === 0) {
+                generateFinals();
+                return res.json({ success: true, message: 'Finali generate' });
+            }
+            
+            const finalsUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final' AND completed = 0").get();
+            if (finalsUnfinished.cnt > 0) {
+                return res.status(400).json({ error: `Ci sono ancora ${finalsUnfinished.cnt} finali non completate` });
             }
             
             db.prepare("UPDATE tournament_state SET phase = 'completed' WHERE id = 1").run();
