@@ -532,7 +532,7 @@ const adminApp = {
         const unavailable = (this.players || []).filter(p => !(p.preferred_dates || []).includes(date));
 
         const renderPlayerRow = (p) => {
-            const icon = p.gender === 'M' ? '🎾' : '🎀';
+            const icon = p.gender === 'M' ? '🎾' : '🏓';
             const catBadge = p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '';
             return `<li class="player-item"><div class="d-flex align-center gap-1"><span>${icon}</span><span class="fw-500">${window.app.escapeHtml(p.name)}</span></div>${catBadge}</li>`;
         };

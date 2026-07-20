@@ -330,7 +330,7 @@ const tournamentApp = {
         }
         if (this.currentGender === 'all' || this.currentGender === 'F') {
             const females = this.standings.filter(p => p.gender === 'F');
-            html += renderTable(females, '🎀 Classifica WTA (Femminile)', 'text-secondary');
+            html += renderTable(females, '🏓 Classifica WTA (Femminile)', 'text-secondary');
         }
         
         container.innerHTML = html || '<div class="text-center py-3 text-light">Nessun dato.</div>';

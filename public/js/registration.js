@@ -257,7 +257,7 @@ const registrationApp = {
             const li = document.createElement('li');
             li.className = 'player-item';
 
-            let icon = p.gender === 'M' ? '🎾' : '🎀';
+            let icon = p.gender === 'M' ? '🎾' : '🏓';
             let catBadge = '';
             if (p.category) {
                 catBadge = `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>`;
