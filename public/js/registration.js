@@ -87,7 +87,7 @@ const registrationApp = {
         e.preventDefault();
         const nameInput = document.getElementById('player-name');
         const genderInput = document.querySelector('input[name="gender"]:checked');
-        const selfCategoryInput = document.querySelector('input[name="self_category"]:checked');
+        const categoryInput = document.querySelector('input[name="category"]:checked');
 
         if (!nameInput.value.trim() || !genderInput) {
             window.app.toast('Compila tutti i campi', 'error');
@@ -101,7 +101,7 @@ const registrationApp = {
             return;
         }
 
-        if (!selfCategoryInput) {
+        if (!categoryInput) {
             window.app.toast('Indica se ti reputi Forte o Normale', 'error');
             return;
         }
@@ -112,14 +112,14 @@ const registrationApp = {
                 nameInput.value.trim(),
                 genderInput.value,
                 Array.from(this.selectedDates),
-                selfCategoryInput.value
+                categoryInput.value
             );
             window.app.toast('Iscrizione completata con successo!');
 
             nameInput.value = '';
             this.selectedDates.clear();
             this.updateDateDisplay();
-            document.querySelectorAll('input[name="self_category"]').forEach(r => r.checked = false);
+            document.querySelectorAll('input[name="category"]').forEach(r => r.checked = false);
 
             await this.loadPlayers();
             await this.loadCalendar();

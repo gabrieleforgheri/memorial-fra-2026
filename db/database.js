@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS players (
   category TEXT CHECK(category IN ('F', 'N', NULL)),
   preferred_date TEXT,
   self_rating INTEGER CHECK(self_rating IS NULL OR (self_rating BETWEEN 1 AND 10)),
-  self_category TEXT CHECK(self_category IS NULL OR self_category IN ('F', 'N')),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -80,13 +79,6 @@ try {
 // Auto-migrate to add self_rating if it doesn't exist
 try {
   db.exec("ALTER TABLE players ADD COLUMN self_rating INTEGER CHECK(self_rating IS NULL OR (self_rating BETWEEN 1 AND 10));");
-} catch (err) {
-  // Column likely already exists
-}
-
-// Auto-migrate to add self_category if it doesn't exist
-try {
-  db.exec("ALTER TABLE players ADD COLUMN self_category TEXT CHECK(self_category IS NULL OR self_category IN ('F', 'N'));");
 } catch (err) {
   // Column likely already exists
 }

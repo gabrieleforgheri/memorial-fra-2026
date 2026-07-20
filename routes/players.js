@@ -30,7 +30,7 @@ router.get('/dates', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-    const { name, gender, preferred_dates, self_category } = req.body;
+    const { name, gender, preferred_dates, category } = req.body;
 
     if (!name || !name.trim() || !gender) {
         return res.status(400).json({ error: 'Name and gender are required' });
@@ -50,7 +50,7 @@ router.post('/', (req, res) => {
         return res.status(400).json({ error: `Le date devono essere comprese tra il 25 Lug e il 20 Ago` });
     }
 
-    if (self_category !== 'F' && self_category !== 'N') {
+    if (category !== 'F' && category !== 'N') {
         return res.status(400).json({ error: 'Devi indicare se ti reputi Forte o Normale' });
     }
 
@@ -69,8 +69,8 @@ router.post('/', (req, res) => {
         }
 
         const newPlayer = db.transaction(() => {
-            const stmt = db.prepare('INSERT INTO players (name, gender, self_category) VALUES (?, ?, ?)');
-            const result = stmt.run(normalizedName, gender, self_category);
+            const stmt = db.prepare('INSERT INTO players (name, gender, category) VALUES (?, ?, ?)');
+            const result = stmt.run(normalizedName, gender, category);
             const playerId = result.lastInsertRowid;
 
             const insertDate = db.prepare('INSERT INTO player_dates (player_id, date) VALUES (?, ?)');
