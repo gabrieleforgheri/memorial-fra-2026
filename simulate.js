@@ -245,32 +245,54 @@ async function run() {
     }
     console.log(`  ✅ Inseriti ${lowerMatches.length} risultati lower bracket\n`);
 
-    // 12. AVANZA → ELIMINAZIONE
-    console.log('📌 12. Avanzamento → Eliminazione diretta...');
+    // 12. AVANZA → ELIMINAZIONE (genera solo Semifinale 1: le due coppie upper si sfidano direttamente)
+    console.log('📌 12. Avanzamento → Eliminazione diretta (Semifinale 1)...');
     const advResult2 = await adminReq('/admin/tournament/advance', { method: 'POST' });
     if (advResult2._error) { issue('BUG', 'AVANZAMENTO', `Impossibile avanzare a eliminazione: ${advResult2.error}`); }
-    
+
     const stateAfterElim = await req('/tournament/state');
     console.log(`  Fase: ${stateAfterElim.phase}`);
 
     const matchesElim = await req('/tournament/matches');
-    const semiMatches = matchesElim.filter(m => m.phase === 'semifinal');
-    console.log(`  Semifinali: ${semiMatches.length}`);
-    if (semiMatches.length === 0) issue('BUG', 'SEMIFINALI', 'Nessuna semifinale creata!');
+    const sf1Matches = matchesElim.filter(m => m.phase === 'semifinal' && m.match_order === 1);
+    console.log(`  Semifinali 1: ${sf1Matches.length}`);
+    if (sf1Matches.length === 0) issue('BUG', 'SEMIFINALI', 'Nessuna Semifinale 1 creata!');
+    if (sf1Matches.length > 0) {
+        const sf1Unfinished = matchesElim.filter(m => m.phase === 'semifinal' && m.match_order === 2);
+        if (sf1Unfinished.length > 0) issue('BUG', 'SEMIFINALI', 'Semifinale 2 generata prima che Semifinale 1 fosse giocata!');
+    }
 
-    // Insert semi scores
-    for (const m of semiMatches) {
+    // Insert SF1 scores (winner goes straight to the final, unchanged)
+    for (const m of sf1Matches) {
         await adminReq(`/admin/matches/${m.id}/score`, {
             method: 'PUT',
             body: JSON.stringify({ score_team1: 6, score_team2: 4 })
         });
     }
-    console.log(`  ✅ Inseriti ${semiMatches.length} risultati semifinali\n`);
+    console.log(`  ✅ Inseriti ${sf1Matches.length} risultati Semifinale 1\n`);
 
-    // 13. AVANZA → genera finali
-    console.log('📌 13. Generazione finali...');
+    // 13. AVANZA → genera Semifinale 2 (perdente SF1 vs migliori del Lower Bracket)
+    console.log('📌 13. Generazione Semifinale 2...');
     const advResult3 = await adminReq('/admin/tournament/advance', { method: 'POST' });
-    if (advResult3._error) { issue('WARN', 'FINALI', `Avanzamento finali: ${advResult3.error || JSON.stringify(advResult3)}`); }
+    if (advResult3._error) { issue('BUG', 'SEMIFINALI', `Impossibile generare Semifinale 2: ${advResult3.error}`); }
+
+    const matchesAfterSF2Gen = await req('/tournament/matches');
+    const sf2Matches = matchesAfterSF2Gen.filter(m => m.phase === 'semifinal' && m.match_order === 2);
+    console.log(`  Semifinali 2: ${sf2Matches.length}`);
+    if (sf2Matches.length === 0) issue('BUG', 'SEMIFINALI', 'Nessuna Semifinale 2 generata!');
+
+    for (const m of sf2Matches) {
+        await adminReq(`/admin/matches/${m.id}/score`, {
+            method: 'PUT',
+            body: JSON.stringify({ score_team1: 6, score_team2: 4 })
+        });
+    }
+    console.log(`  ✅ Inseriti ${sf2Matches.length} risultati Semifinale 2\n`);
+
+    // 14. AVANZA → genera finali
+    console.log('📌 14. Generazione finali...');
+    const advResult4 = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    if (advResult4._error) { issue('WARN', 'FINALI', `Avanzamento finali: ${advResult4.error || JSON.stringify(advResult4)}`); }
 
     const matchesFinal = await req('/tournament/matches');
     const finalMatches = matchesFinal.filter(m => m.phase === 'final');
@@ -285,9 +307,9 @@ async function run() {
         });
     }
 
-    // 14. AVANZA → COMPLETAMENTO
-    console.log('\n📌 14. Completamento torneo...');
-    const advResult4 = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    // 15. AVANZA → COMPLETAMENTO
+    console.log('\n📌 15. Completamento torneo...');
+    const advResult5 = await adminReq('/admin/tournament/advance', { method: 'POST' });
     const stateEnd = await req('/tournament/state');
     console.log(`  Fase finale: ${stateEnd.phase}`);
     if (stateEnd.phase !== 'completed') issue('BUG', 'COMPLETAMENTO', `Torneo non completato: fase "${stateEnd.phase}"`);

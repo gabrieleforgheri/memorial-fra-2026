@@ -243,34 +243,44 @@ router.post('/tournament/advance', (req, res) => {
             if (unfinished.cnt > 0) {
                 return res.status(400).json({ error: `Ci sono ancora ${unfinished.cnt} partite del lower bracket non completate` });
             }
-            
-            // Generate elimination (semifinals)
-            generateElimination();
-            
+
+            // Generate semifinal 1 only - the two upper-group qualifying pairs play each other directly
+            generateSemifinal1();
+
             db.prepare("UPDATE tournament_state SET phase = 'elimination' WHERE id = 1").run();
             res.json({ success: true, phase: 'elimination' });
-            
+
         } else if (state.phase === 'elimination') {
-            const semisUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND completed = 0").get();
-            const finalsExist = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
-            
-            if (semisUnfinished.cnt > 0) {
-                return res.status(400).json({ error: `Ci sono ancora ${semisUnfinished.cnt} semifinali non completate` });
+            const sf1Unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 1 AND completed = 0").get();
+            if (sf1Unfinished.cnt > 0) {
+                return res.status(400).json({ error: `Ci sono ancora ${sf1Unfinished.cnt} semifinali 1 non completate` });
             }
-            
+
+            const sf2Exists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2").get();
+            if (sf2Exists.cnt === 0) {
+                generateSemifinal2();
+                return res.json({ success: true, message: 'Semifinale 2 generata: il perdente della semifinale 1 sfida i qualificati dal Lower Bracket' });
+            }
+
+            const sf2Unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2 AND completed = 0").get();
+            if (sf2Unfinished.cnt > 0) {
+                return res.status(400).json({ error: `Ci sono ancora ${sf2Unfinished.cnt} semifinali 2 non completate` });
+            }
+
+            const finalsExist = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
             if (finalsExist.cnt === 0) {
                 generateFinals();
                 return res.json({ success: true, message: 'Finali generate' });
             }
-            
+
             const finalsUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final' AND completed = 0").get();
             if (finalsUnfinished.cnt > 0) {
                 return res.status(400).json({ error: `Ci sono ancora ${finalsUnfinished.cnt} finali non completate` });
             }
-            
+
             db.prepare("UPDATE tournament_state SET phase = 'completed' WHERE id = 1").run();
             res.json({ success: true, phase: 'completed' });
-            
+
         } else {
             res.status(400).json({ error: 'Cannot advance from current phase: ' + state.phase });
         }
@@ -323,6 +333,22 @@ router.post('/tournament/clear-dates', (req, res) => {
 
 // === Helper functions ===
 
+// Best/worst F and N of a group by points, then game diff, then a random draw
+// for ties within the same category (per tournament rules).
+function pickBestAndWorst(groupId) {
+    const players = db.prepare(`
+        SELECT gp.*, p.name, p.category FROM group_players gp
+        JOIN players p ON gp.player_id = p.id
+        WHERE gp.group_id = ?
+        ORDER BY gp.points DESC, gp.diff DESC, RANDOM()
+    `).all(groupId);
+
+    const fs = players.filter(p => p.category === 'F');
+    const ns = players.filter(p => p.category === 'N');
+
+    return { bestF: fs[0], worstF: fs[1], bestN: ns[0], worstN: ns[1] };
+}
+
 function recalculateGroupStandings(groupId) {
     const groupMatches = db.prepare('SELECT * FROM matches WHERE group_id = ? AND completed = 1').all(groupId);
     
@@ -359,147 +385,101 @@ function recalculateGroupStandings(groupId) {
 }
 
 function generateLowerBracket() {
-    // For each type (ATP/WTA), get the bottom 2 from each group and create lower bracket group
+    // For each type (ATP/WTA): the F and N who did NOT qualify from each upper
+    // group (i.e. the ones who aren't that group's best F / best N) form the
+    // Lower bracket girone. Round robin, cross-paired by origin group first
+    // (match 1), then paired within their own original group (match 2) - the
+    // two are the only possible F+N pairings among these 4 players.
     ['ATP', 'WTA'].forEach(type => {
         const groups = db.prepare("SELECT * FROM groups WHERE type = ? AND bracket = 'upper'").all(type);
-        
-        if (groups.length < 2) return; // Need at least 2 groups
-        
-        // Get bottom 2 from each group (positions 3 and 4)
-        const lowerPlayers = [];
-        groups.forEach(g => {
-            const bottomPlayers = db.prepare(`
-                SELECT gp.*, p.name, p.category FROM group_players gp
-                JOIN players p ON gp.player_id = p.id
-                WHERE gp.group_id = ?
-                ORDER BY gp.points DESC, gp.diff DESC
-            `).all(g.id);
-            
-            // Take bottom 2 (or less if fewer players)
-            const bottom = bottomPlayers.slice(2);
-            bottom.forEach(p => lowerPlayers.push({ ...p, from_group: g.id }));
+        if (groups.length < 2) return;
+
+        const A = pickBestAndWorst(groups[0].id);
+        const B = pickBestAndWorst(groups[1].id);
+
+        if (!A.worstF || !A.worstN || !B.worstF || !B.worstN) return;
+
+        const lowerGroup = db.prepare("INSERT INTO groups (name, type, bracket, phase) VALUES (?, ?, 'lower', 'lower')").run(`Lower Bracket ${type}`, type);
+        const lowerGroupId = lowerGroup.lastInsertRowid;
+
+        [A.worstF, A.worstN, B.worstF, B.worstN].forEach(p => {
+            db.prepare('INSERT INTO group_players (group_id, player_id) VALUES (?, ?)').run(lowerGroupId, p.player_id);
         });
-        
-        if (lowerPlayers.length >= 4) {
-            // Create lower bracket group
-            const lowerGroup = db.prepare("INSERT INTO groups (name, type, bracket, phase) VALUES (?, ?, 'lower', 'lower')").run(`Lower Bracket ${type}`, type);
-            const lowerGroupId = lowerGroup.lastInsertRowid;
-            
-            lowerPlayers.forEach(p => {
-                db.prepare('INSERT INTO group_players (group_id, player_id) VALUES (?, ?)').run(lowerGroupId, p.player_id);
-            });
-            
-            // Create matches for lower bracket (same F+N pairing logic)
-            const fPlayers = lowerPlayers.filter(p => p.category === 'F');
-            const nPlayers = lowerPlayers.filter(p => p.category === 'N');
-            
-            if (fPlayers.length >= 2 && nPlayers.length >= 2) {
-                db.prepare(`
-                    INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-                    VALUES (?, 'lower', ?, ?, ?, ?, ?, 1)
-                `).run(lowerGroupId, type, fPlayers[0].player_id, nPlayers[0].player_id, fPlayers[1].player_id, nPlayers[1].player_id);
-                
-                db.prepare(`
-                    INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-                    VALUES (?, 'lower', ?, ?, ?, ?, ?, 2)
-                `).run(lowerGroupId, type, fPlayers[0].player_id, nPlayers[1].player_id, fPlayers[1].player_id, nPlayers[0].player_id);
-            }
-        }
+
+        // Match 1: cross-group pair vs cross-group pair
+        db.prepare(`
+            INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
+            VALUES (?, 'lower', ?, ?, ?, ?, ?, 1)
+        `).run(lowerGroupId, type, A.worstF.player_id, B.worstN.player_id, B.worstF.player_id, A.worstN.player_id);
+
+        // Match 2: same-origin-group pair vs same-origin-group pair
+        db.prepare(`
+            INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
+            VALUES (?, 'lower', ?, ?, ?, ?, ?, 2)
+        `).run(lowerGroupId, type, A.worstF.player_id, A.worstN.player_id, B.worstF.player_id, B.worstN.player_id);
     });
 }
 
-function generateElimination() {
-    // For each type, create semifinals by cross-pairing:
-    // Best F from Group A + Best N from Group B vs Best F from Group B + Best N from Group A
+// Semifinal 1: the two upper-group qualifying pairs play each other directly.
+// Best F from Group A + Best N from Group B vs Best F from Group B + Best N from Group A.
+function generateSemifinal1() {
     ['ATP', 'WTA'].forEach(type => {
         const upperGroups = db.prepare("SELECT * FROM groups WHERE type = ? AND bracket = 'upper'").all(type);
-        const lowerGroups = db.prepare("SELECT * FROM groups WHERE type = ? AND bracket = 'lower'").all(type);
-        
         if (upperGroups.length < 2) return;
-        
-        // Get top 2 from each upper group
-        const getTop2 = (groupId) => {
-            return db.prepare(`
-                SELECT gp.*, p.name, p.category FROM group_players gp
-                JOIN players p ON gp.player_id = p.id
-                WHERE gp.group_id = ?
-                ORDER BY gp.points DESC, gp.diff DESC
-                LIMIT 4
-            `).all(groupId);
-        };
-        
-        const groupA = getTop2(upperGroups[0].id);
-        const groupB = getTop2(upperGroups[1].id);
-        
-        // Find best F and best N from each group
-        const bestF_A = groupA.find(p => p.category === 'F');
-        const bestN_A = groupA.find(p => p.category === 'N');
-        const bestF_B = groupB.find(p => p.category === 'F');
-        const bestN_B = groupB.find(p => p.category === 'N');
-        
-        if (bestF_A && bestN_B && bestF_B && bestN_A) {
-            // Semifinal 1: Best F from A + Best N from B vs winner from lower
-            // Semifinal 2: Best F from B + Best N from A vs winner from lower
-            
-            // For now, get top 2 from lower bracket too
-            let lowerTop = [];
-            if (lowerGroups.length > 0) {
-                lowerTop = db.prepare(`
-                    SELECT gp.*, p.name, p.category FROM group_players gp
-                    JOIN players p ON gp.player_id = p.id
-                    WHERE gp.group_id = ?
-                    ORDER BY gp.points DESC, gp.diff DESC
-                `).all(lowerGroups[0].id);
-            }
-            
-            const lowerF1 = lowerTop.find(p => p.category === 'F');
-            const lowerN1 = lowerTop.find(p => p.category === 'N');
-            const lowerF2 = lowerTop.filter(p => p.category === 'F')[1];
-            const lowerN2 = lowerTop.filter(p => p.category === 'N')[1];
-            
-            // Semifinal 1: upper cross-pair 1 vs lower pair 1
-            if (lowerF1 && lowerN1) {
-                db.prepare(`
-                    INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-                    VALUES ('semifinal', ?, ?, ?, ?, ?, 1)
-                `).run(type, bestF_A.player_id, bestN_B.player_id, lowerF1.player_id, lowerN1.player_id);
-            }
-            
-            // Semifinal 2: upper cross-pair 2 vs lower pair 2
-            if (lowerF2 && lowerN2) {
-                db.prepare(`
-                    INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-                    VALUES ('semifinal', ?, ?, ?, ?, ?, 2)
-                `).run(type, bestF_B.player_id, bestN_A.player_id, lowerF2.player_id, lowerN2.player_id);
-            } else {
-                // If lower bracket doesn't have enough, semi 2 is just the other cross-pair vs someone
-                // Just create match with available players
-                db.prepare(`
-                    INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-                    VALUES ('semifinal', ?, ?, ?, ?, ?, 2)
-                `).run(type, bestF_B.player_id, bestN_A.player_id, bestF_A.player_id, bestN_A.player_id);
-            }
-        }
+
+        const A = pickBestAndWorst(upperGroups[0].id);
+        const B = pickBestAndWorst(upperGroups[1].id);
+
+        if (!A.bestF || !A.bestN || !B.bestF || !B.bestN) return;
+
+        db.prepare(`
+            INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
+            VALUES ('semifinal', ?, ?, ?, ?, ?, 1)
+        `).run(type, A.bestF.player_id, B.bestN.player_id, B.bestF.player_id, A.bestN.player_id);
     });
 }
 
+// Semifinal 2: the loser of semifinal 1 plays the Lower bracket's best F + best N,
+// for the second spot in the final. Only generated once semifinal 1 has a result.
+function generateSemifinal2() {
+    ['ATP', 'WTA'].forEach(type => {
+        const sf1 = db.prepare("SELECT * FROM matches WHERE phase = 'semifinal' AND type = ? AND match_order = 1").get(type);
+        if (!sf1 || !sf1.completed) return;
+
+        const alreadyGenerated = db.prepare("SELECT id FROM matches WHERE phase = 'semifinal' AND type = ? AND match_order = 2").get(type);
+        if (alreadyGenerated) return;
+
+        const lowerGroup = db.prepare("SELECT * FROM groups WHERE type = ? AND bracket = 'lower'").get(type);
+        if (!lowerGroup) return;
+
+        const lower = pickBestAndWorst(lowerGroup.id);
+        if (!lower.bestF || !lower.bestN) return;
+
+        const loser = sf1.score_team1 > sf1.score_team2
+            ? { p1: sf1.team2_player1_id, p2: sf1.team2_player2_id }
+            : { p1: sf1.team1_player1_id, p2: sf1.team1_player2_id };
+
+        db.prepare(`
+            INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
+            VALUES ('semifinal', ?, ?, ?, ?, ?, 2)
+        `).run(type, lower.bestF.player_id, lower.bestN.player_id, loser.p1, loser.p2);
+    });
+}
+
+// Final: semifinal 1's winner advances unchanged; semifinal 2's winner takes the other spot.
 function generateFinals() {
     ['ATP', 'WTA'].forEach(type => {
-        const semis = db.prepare("SELECT * FROM matches WHERE phase = 'semifinal' AND type = ? AND completed = 1").all(type);
-        
-        if (semis.length < 2) return;
-        
-        // Get winners from each semifinal
-        const getWinner = (match) => {
-            if (match.score_team1 > match.score_team2) {
-                return { p1: match.team1_player1_id, p2: match.team1_player2_id };
-            }
-            return { p1: match.team2_player1_id, p2: match.team2_player2_id };
-        };
-        
-        const winner1 = getWinner(semis[0]);
-        const winner2 = getWinner(semis[1]);
-        
+        const sf1 = db.prepare("SELECT * FROM matches WHERE phase = 'semifinal' AND type = ? AND match_order = 1").get(type);
+        const sf2 = db.prepare("SELECT * FROM matches WHERE phase = 'semifinal' AND type = ? AND match_order = 2").get(type);
+        if (!sf1 || !sf1.completed || !sf2 || !sf2.completed) return;
+
+        const getWinner = (match) => match.score_team1 > match.score_team2
+            ? { p1: match.team1_player1_id, p2: match.team1_player2_id }
+            : { p1: match.team2_player1_id, p2: match.team2_player2_id };
+
+        const winner1 = getWinner(sf1);
+        const winner2 = getWinner(sf2);
+
         db.prepare(`
             INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
             VALUES ('final', ?, ?, ?, ?, ?, 1)
