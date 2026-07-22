@@ -45,9 +45,9 @@ router.post('/', (req, res) => {
     }
 
     const TOURNAMENT_DATE_MIN = '2026-07-25';
-    const TOURNAMENT_DATE_MAX = '2026-08-20';
+    const TOURNAMENT_DATE_MAX = '2026-08-15';
     if (preferred_dates.some(d => d < TOURNAMENT_DATE_MIN || d > TOURNAMENT_DATE_MAX)) {
-        return res.status(400).json({ error: `Le date devono essere comprese tra il 25 Lug e il 20 Ago` });
+        return res.status(400).json({ error: `Le date devono essere comprese tra il 25 Lug e il 15 Ago` });
     }
 
     if (category !== 'F' && category !== 'N') {
