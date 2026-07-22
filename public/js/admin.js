@@ -408,7 +408,7 @@ const adminApp = {
         if (!chartContainer) return;
 
         const TOURNAMENT_DATE_MIN = '2026-07-25';
-        const TOURNAMENT_DATE_MAX = '2026-08-20';
+        const TOURNAMENT_DATE_MAX = '2026-08-15';
         const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 
         const countByDate = {};
