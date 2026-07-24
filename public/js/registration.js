@@ -1,14 +1,11 @@
 // registration.js
 
 const registrationApp = {
-    selectedDates: new Set(),
     currentStep: 1,
 
     async init() {
-        this.selectedDates = new Set();
         this.bindEvents();
         await this.loadPlayers();
-        await this.loadCalendar();
         this.goToStep(1);
     },
 
@@ -41,14 +38,7 @@ const registrationApp = {
             }
         }
 
-        if (this.currentStep === 2) {
-            if (this.selectedDates.size === 0) {
-                window.app.toast('Seleziona almeno una data dal calendario', 'error');
-                return;
-            }
-        }
-
-        if (targetStep === 3) this.renderSummary();
+        if (targetStep === 2) this.renderSummary();
         this.goToStep(targetStep);
     },
 
@@ -73,21 +63,12 @@ const registrationApp = {
 
         document.getElementById('summary-name').textContent = name;
         document.getElementById('summary-gender').textContent = gender === 'M' ? 'Uomo (ATP)' : 'Donna (WTA)';
-
-        const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-        const sorted = Array.from(this.selectedDates).sort();
-        const labels = sorted.map(d => {
-            const dt = new Date(d + 'T12:00:00');
-            return `${dt.getDate()} ${monthNames[dt.getMonth()]}`;
-        });
-        document.getElementById('summary-dates').textContent = labels.join(', ') || '-';
     },
 
     async handleRegister(e) {
         e.preventDefault();
         const nameInput = document.getElementById('player-name');
         const genderInput = document.querySelector('input[name="gender"]:checked');
-        const categoryInput = document.querySelector('input[name="category"]:checked');
 
         if (!nameInput.value.trim() || !genderInput) {
             window.app.toast('Compila tutti i campi', 'error');
@@ -95,130 +76,18 @@ const registrationApp = {
             return;
         }
 
-        if (this.selectedDates.size === 0) {
-            window.app.toast('Devi selezionare almeno una data dal calendario', 'error');
-            this.goToStep(2);
-            return;
-        }
-
-        if (!categoryInput) {
-            window.app.toast('Indica se ti reputi Forte o Normale', 'error');
-            return;
-        }
-
         try {
             window.app.showLoader();
-            await window.api.registerPlayer(
-                nameInput.value.trim(),
-                genderInput.value,
-                Array.from(this.selectedDates),
-                categoryInput.value
-            );
+            await window.api.registerPlayer(nameInput.value.trim(), genderInput.value);
             window.app.toast('Iscrizione completata con successo!');
 
             nameInput.value = '';
-            this.selectedDates.clear();
-            this.updateDateDisplay();
-            document.querySelectorAll('input[name="category"]').forEach(r => r.checked = false);
-
             await this.loadPlayers();
-            await this.loadCalendar();
             this.goToStep(1);
         } catch (error) {
             window.app.toast(error.message || 'Errore durante l\'iscrizione', 'error');
         } finally {
             window.app.hideLoader();
-        }
-    },
-
-    updateDateDisplay() {
-        const display = document.getElementById('selected-date-display');
-        const textEl = document.getElementById('selected-date-text');
-
-        if (this.selectedDates.size === 0) {
-            display.classList.add('hidden');
-            return;
-        }
-
-        display.classList.remove('hidden');
-        const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-
-        const sorted = Array.from(this.selectedDates).sort();
-        const labels = sorted.map(d => {
-            const dt = new Date(d + 'T12:00:00');
-            return `${dt.getDate()} ${monthNames[dt.getMonth()]}`;
-        });
-
-        textEl.textContent = labels.join(', ') + ` (${labels.length} ${labels.length === 1 ? 'giorno' : 'giorni'})`;
-    },
-
-    async loadCalendar() {
-        const container = document.getElementById('date-calendar');
-        if (!container) return;
-
-        container.innerHTML = '<div class="text-light">Caricamento calendario...</div>';
-
-        try {
-            const stats = await window.api.getDatesStats();
-            const dateMap = {};
-            let maxVotes = 0;
-            stats.forEach(s => {
-                dateMap[s.date] = s.count;
-                if (s.count > maxVotes) maxVotes = s.count;
-            });
-
-            // Generate dates from Jul 25 to Aug 25
-            const startDate = new Date('2026-07-25');
-            const endDate = new Date('2026-08-15');
-            const monthNames = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
-
-            container.innerHTML = '';
-
-            let currentDate = new Date(startDate);
-            while (currentDate <= endDate) {
-                const dateStr = currentDate.toISOString().split('T')[0];
-                const dayNum = currentDate.getDate();
-                const monthName = monthNames[currentDate.getMonth()];
-                const votes = dateMap[dateStr] || 0;
-
-                const dayEl = document.createElement('div');
-                dayEl.className = 'calendar-day';
-
-                // Heat-map: absolute scale, full red at 10+ votes
-                if (votes > 0) {
-                    const intensity = Math.min(1, votes / 10) * 0.8 + 0.1;
-                    dayEl.style.backgroundColor = `rgba(255, 71, 87, ${intensity})`;
-                    dayEl.style.borderColor = `rgba(255, 71, 87, ${Math.min(1, intensity + 0.2)})`;
-                }
-
-                // Restore selection state
-                if (this.selectedDates.has(dateStr)) {
-                    dayEl.classList.add('selected');
-                }
-
-                dayEl.innerHTML = `
-                    <span class="day-num">${dayNum}</span>
-                    <span class="month-name">${monthName}</span>
-                    <span class="vote-count">${votes} <small>voti</small></span>
-                `;
-
-                dayEl.dataset.date = dateStr;
-                dayEl.addEventListener('click', () => {
-                    if (this.selectedDates.has(dateStr)) {
-                        this.selectedDates.delete(dateStr);
-                        dayEl.classList.remove('selected');
-                    } else {
-                        this.selectedDates.add(dateStr);
-                        dayEl.classList.add('selected');
-                    }
-                    this.updateDateDisplay();
-                });
-
-                container.appendChild(dayEl);
-                currentDate.setDate(currentDate.getDate() + 1);
-            }
-        } catch (error) {
-            container.innerHTML = '<div class="text-danger">Errore caricamento calendario</div>';
         }
     },
 

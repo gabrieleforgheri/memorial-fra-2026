@@ -64,18 +64,19 @@ router.get('/matches', (req, res) => {
             else if (m.phase === 'lower') phase_name = 'Lower Bracket';
             else if (m.phase === 'semifinal') phase_name = 'Semifinale';
             else if (m.phase === 'final') phase_name = 'Finale';
-            
+            else if (m.phase === 'tiebreak') phase_name = `Spareggio (Singolo) - ${m.group_name || ''}`.trim();
+
             // Status
             let status = 'upcoming';
             if (m.completed) status = 'completed';
-            
+
             return {
                 ...m,
                 gender,
                 phase_name,
                 status,
-                team1_name: `${m.t1p1_name || '?'} / ${m.t1p2_name || '?'}`,
-                team2_name: `${m.t2p1_name || '?'} / ${m.t2p2_name || '?'}`,
+                team1_name: m.t1p2_name ? `${m.t1p1_name || '?'} / ${m.t1p2_name}` : (m.t1p1_name || '?'),
+                team2_name: m.t2p2_name ? `${m.t2p1_name || '?'} / ${m.t2p2_name}` : (m.t2p1_name || '?'),
                 team1_players: [
                     { name: m.t1p1_name, category: m.t1p1_cat },
                     { name: m.t1p2_name, category: m.t1p2_cat }

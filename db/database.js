@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS players (
   category TEXT CHECK(category IN ('F', 'N', NULL)),
   preferred_date TEXT,
   self_rating INTEGER CHECK(self_rating IS NULL OR (self_rating BETWEEN 1 AND 10)),
+  accepted INTEGER NOT NULL DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -41,12 +42,12 @@ CREATE TABLE IF NOT EXISTS group_players (
 CREATE TABLE IF NOT EXISTS matches (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   group_id INTEGER REFERENCES groups(id),
-  phase TEXT NOT NULL DEFAULT 'gironi' CHECK(phase IN ('gironi', 'lower', 'semifinal', 'final')),
+  phase TEXT NOT NULL DEFAULT 'gironi' CHECK(phase IN ('gironi', 'lower', 'semifinal', 'final', 'tiebreak')),
   type TEXT NOT NULL CHECK(type IN ('ATP', 'WTA')),
   team1_player1_id INTEGER NOT NULL REFERENCES players(id),
-  team1_player2_id INTEGER NOT NULL REFERENCES players(id),
+  team1_player2_id INTEGER REFERENCES players(id),
   team2_player1_id INTEGER NOT NULL REFERENCES players(id),
-  team2_player2_id INTEGER NOT NULL REFERENCES players(id),
+  team2_player2_id INTEGER REFERENCES players(id),
   score_team1 INTEGER DEFAULT NULL,
   score_team2 INTEGER DEFAULT NULL,
   points_team1 INTEGER DEFAULT NULL,
@@ -93,11 +94,61 @@ db.exec(`
   );
 `);
 
+// Auto-migrate to add accepted (admin approval) if it doesn't exist. Players that
+// already existed before this feature were already full participants - grandfather
+// them in as accepted rather than silently dropping them from group generation.
+try {
+  const playersCols = db.prepare("PRAGMA table_info(players)").all();
+  if (!playersCols.some(c => c.name === 'accepted')) {
+    db.exec("ALTER TABLE players ADD COLUMN accepted INTEGER NOT NULL DEFAULT 0;");
+    db.exec("UPDATE players SET accepted = 1;");
+  }
+} catch (err) {
+  console.error('players.accepted migration failed:', err.message);
+}
+
 // Names are stored trimmed+uppercased, so a plain unique index is case-insensitive in practice.
 try {
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_players_name_unique ON players(name);');
 } catch (err) {
   // Existing duplicate names in the DB prevent the index from being created; leave as-is.
+}
+
+// Migrate matches table to allow singles (tiebreak) entries: team*_player2_id nullable,
+// and 'tiebreak' added to the phase check. SQLite can't ALTER a column's constraints
+// in place, so rebuild the table when the old (stricter) schema is detected.
+try {
+  const matchesCols = db.prepare("PRAGMA table_info(matches)").all();
+  const player2Col = matchesCols.find(c => c.name === 'team1_player2_id');
+  if (player2Col && player2Col.notnull === 1) {
+    db.transaction(() => {
+      db.exec(`
+        CREATE TABLE matches_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          group_id INTEGER REFERENCES groups(id),
+          phase TEXT NOT NULL DEFAULT 'gironi' CHECK(phase IN ('gironi', 'lower', 'semifinal', 'final', 'tiebreak')),
+          type TEXT NOT NULL CHECK(type IN ('ATP', 'WTA')),
+          team1_player1_id INTEGER NOT NULL REFERENCES players(id),
+          team1_player2_id INTEGER REFERENCES players(id),
+          team2_player1_id INTEGER NOT NULL REFERENCES players(id),
+          team2_player2_id INTEGER REFERENCES players(id),
+          score_team1 INTEGER DEFAULT NULL,
+          score_team2 INTEGER DEFAULT NULL,
+          points_team1 INTEGER DEFAULT NULL,
+          points_team2 INTEGER DEFAULT NULL,
+          match_order INTEGER DEFAULT 0,
+          scheduled_time TEXT DEFAULT NULL,
+          completed INTEGER DEFAULT 0,
+          round_number INTEGER DEFAULT 1
+        );
+      `);
+      db.exec('INSERT INTO matches_new SELECT * FROM matches;');
+      db.exec('DROP TABLE matches;');
+      db.exec('ALTER TABLE matches_new RENAME TO matches;');
+    })();
+  }
+} catch (err) {
+  console.error('matches table migration failed:', err.message);
 }
 
 module.exports = db;

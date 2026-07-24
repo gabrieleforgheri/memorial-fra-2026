@@ -57,10 +57,10 @@ const api = {
     },
 
     // Public API
-    async registerPlayer(name, gender, preferred_dates, category) {
+    async registerPlayer(name, gender) {
         return this.request('/players', {
             method: 'POST',
-            body: JSON.stringify({ name, gender, preferred_dates, category })
+            body: JSON.stringify({ name, gender })
         });
     },
 
@@ -114,6 +114,14 @@ const api = {
     },
 
     // Admin API
+    async acceptPlayer(id) {
+        return this.request(`/admin/players/${id}/accept`, { method: 'PUT' });
+    },
+
+    async unacceptPlayer(id) {
+        return this.request(`/admin/players/${id}/unaccept`, { method: 'PUT' });
+    },
+
     async updatePlayerCategory(id, category) {
         return this.request(`/admin/players/${id}/category`, {
             method: 'PUT',

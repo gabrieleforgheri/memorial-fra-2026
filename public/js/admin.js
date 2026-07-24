@@ -230,6 +230,7 @@ const adminApp = {
             this.groups = groups || [];
             this.datesStats = datesStats || [];
 
+            this.renderPendingTable();
             this.renderPlayersTable();
             this.renderState();
             this.renderMatches();
@@ -300,15 +301,78 @@ const adminApp = {
         }
     },
 
+    renderPendingTable() {
+        const tbody = document.querySelector('#admin-pending-table tbody');
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        const pending = (this.players || []).filter(p => !p.accepted);
+
+        const statsEl = document.getElementById('admin-pending-stats');
+        if (statsEl) {
+            statsEl.innerHTML = `<span class="text-accent">${pending.length} in attesa</span>`;
+        }
+
+        if (pending.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-light p-2">Nessun iscritto in attesa</td></tr>';
+            return;
+        }
+
+        pending.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+        pending.forEach(p => {
+            const tr = document.createElement('tr');
+            const genderLabel = p.gender === 'M' ? '<span class="text-accent">ATP</span>' : '<span class="text-secondary">WTA</span>';
+            const createdAt = p.created_at ? new Date(p.created_at.replace(' ', 'T')).toLocaleString('it-IT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-';
+
+            tr.innerHTML = `
+                <td><span class="fw-500">${window.app.escapeHtml(p.name)}</span></td>
+                <td>${genderLabel}</td>
+                <td class="text-light" style="font-size:0.85rem;">${createdAt}</td>
+                <td style="display:flex; gap:0.5rem;">
+                    <button class="btn btn-primary btn-accept-p" data-id="${p.id}" style="padding:0.4rem 0.8rem; font-size:0.85rem;">✓ Accetta</button>
+                    <button class="btn btn-danger btn-delete-p" data-id="${p.id}" style="padding:0.4rem 0.8rem; font-size:0.85rem;">✕</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll('.btn-accept-p').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const playerId = e.currentTarget.dataset.id;
+                try {
+                    await window.api.acceptPlayer(playerId);
+                    window.app.toast('Iscrizione accettata ✅');
+                    await this.loadDashboardData();
+                } catch (err) { window.app.toast(err.message || 'Errore accettazione', 'error'); }
+            });
+        });
+
+        tbody.querySelectorAll('.btn-delete-p').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const playerId = e.currentTarget.dataset.id;
+                if (!confirm('Rifiutare ed eliminare questa iscrizione?')) return;
+                try {
+                    await window.api.deletePlayer(playerId);
+                    window.app.toast('Iscrizione eliminata');
+                    await this.loadDashboardData();
+                } catch (err) { window.app.toast(err.message || 'Errore eliminazione', 'error'); }
+            });
+        });
+    },
+
     renderPlayersTable() {
         const tbody = document.querySelector('#admin-players-table tbody');
         if (!tbody) return;
-        
+
         tbody.innerHTML = '';
-        
+
+        const accepted = (this.players || []).filter(p => p.accepted);
+
         // Stats
-        const mPlayers = this.players.filter(p => p.gender === 'M');
-        const fPlayers = this.players.filter(p => p.gender === 'F');
+        const mPlayers = accepted.filter(p => p.gender === 'M');
+        const fPlayers = accepted.filter(p => p.gender === 'F');
         
         const countCat = (list, cat) => list.filter(p => p.category === cat).length;
         const countUnassigned = (list) => list.filter(p => !p.category).length;
@@ -322,7 +386,7 @@ const adminApp = {
         document.getElementById('admin-players-stats').innerHTML = statsHtml;
 
         // Sort: unassigned first, then by gender, then by name
-        const sorted = [...this.players].sort((a, b) => {
+        const sorted = [...accepted].sort((a, b) => {
             if (!a.category && b.category) return -1;
             if (a.category && !b.category) return 1;
             if (a.gender !== b.gender) return a.gender === 'M' ? -1 : 1;

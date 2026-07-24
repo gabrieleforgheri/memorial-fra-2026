@@ -267,6 +267,25 @@ h1, h2, h3, h4, .font-heading {
     color: var(--success);
     font-weight: 500;
 }
+.tournament-date-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 107, 53, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    color: var(--accent);
+    font-weight: 500;
+    margin-top: 0.6rem;
+}
+.tournament-date-banner-sm {
+    margin-top: 0;
+    margin-left: 0.6rem;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
 .status-dot {
     width: 10px;
     height: 10px;

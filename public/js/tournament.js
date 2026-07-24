@@ -197,7 +197,7 @@ const tournamentApp = {
         // Phase filter
         if (filterSelect && filterSelect.value !== 'all') {
             if (filterSelect.value === 'group') {
-                filteredMatches = filteredMatches.filter(m => m.phase === 'gironi' || m.phase === 'lower');
+                filteredMatches = filteredMatches.filter(m => m.phase === 'gironi' || m.phase === 'lower' || m.phase === 'tiebreak');
             } else if (filterSelect.value === 'elimination') {
                 filteredMatches = filteredMatches.filter(m => m.phase === 'semifinal' || m.phase === 'final');
             }

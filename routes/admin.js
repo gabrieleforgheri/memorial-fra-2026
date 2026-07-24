@@ -6,6 +6,26 @@ const { generateGroupsLogistics, calculateScorePoints, validateBalancedCategorie
 
 router.use(auth); // Protect all admin routes
 
+// Accept a pending registration
+router.put('/players/:id/accept', (req, res) => {
+    try {
+        db.prepare('UPDATE players SET accepted = 1 WHERE id = ?').run(req.params.id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Undo an acceptance (move back to pending)
+router.put('/players/:id/unaccept', (req, res) => {
+    try {
+        db.prepare('UPDATE players SET accepted = 0 WHERE id = ?').run(req.params.id);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Update player category (F/N)
 router.put('/players/:id/category', (req, res) => {
     const { category } = req.body;
@@ -56,11 +76,11 @@ router.delete('/players/:id', (req, res) => {
 // Auto-generate groups
 router.post('/groups/generate', (req, res) => {
     try {
-        const males = db.prepare("SELECT * FROM players WHERE gender = 'M' AND category IS NOT NULL").all();
-        const females = db.prepare("SELECT * FROM players WHERE gender = 'F' AND category IS NOT NULL").all();
+        const males = db.prepare("SELECT * FROM players WHERE gender = 'M' AND category IS NOT NULL AND accepted = 1").all();
+        const females = db.prepare("SELECT * FROM players WHERE gender = 'F' AND category IS NOT NULL AND accepted = 1").all();
 
         if (males.length === 0 && females.length === 0) {
-            return res.status(400).json({ error: 'Nessun giocatore con categoria assegnata. Assegna F/N prima di generare i gironi.' });
+            return res.status(400).json({ error: 'Nessun giocatore accettato con categoria assegnata. Accetta le iscrizioni e assegna F/N prima di generare i gironi.' });
         }
 
         const maleBalance = validateBalancedCategories(males);
@@ -121,7 +141,11 @@ router.put('/groups/manual', (req, res) => {
 
     try {
         for (const group of groups) {
-            const players = (group.player_ids || []).map(id => db.prepare('SELECT category FROM players WHERE id = ?').get(id));
+            const players = (group.player_ids || []).map(id => db.prepare('SELECT category, accepted, name FROM players WHERE id = ?').get(id));
+            const notAccepted = players.filter(p => !p || !p.accepted);
+            if (notAccepted.length > 0) {
+                return res.status(400).json({ error: `Girone "${group.name}": include giocatori non ancora accettati.` });
+            }
             const { fCount, nCount, balanced } = validateBalancedCategories(players);
             if (!balanced) {
                 return res.status(400).json({ error: `Girone "${group.name}": Forti (${fCount}) e Normali (${nCount}) non sono in numero uguale.` });
@@ -230,19 +254,25 @@ router.post('/tournament/advance', (req, res) => {
             if (unfinished.cnt > 0) {
                 return res.status(400).json({ error: `Ci sono ancora ${unfinished.cnt} partite dei gironi non completate` });
             }
-            
+
+            // Resolve any F/N ties before creating real matches, so a
+            // PENDING_TIEBREAK can't leave the lower bracket half-generated.
+            checkBracketReady('upper');
+
             // Generate lower bracket groups and matches
             generateLowerBracket();
-            
+
             db.prepare("UPDATE tournament_state SET phase = 'lower_bracket' WHERE id = 1").run();
             res.json({ success: true, phase: 'lower_bracket' });
-            
+
         } else if (state.phase === 'lower_bracket') {
             // Check if all lower bracket matches are completed
             const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'lower' AND completed = 0").get();
             if (unfinished.cnt > 0) {
                 return res.status(400).json({ error: `Ci sono ancora ${unfinished.cnt} partite del lower bracket non completate` });
             }
+
+            checkBracketReady('upper');
 
             // Generate semifinal 1 only - the two upper-group qualifying pairs play each other directly
             generateSemifinal1();
@@ -258,6 +288,7 @@ router.post('/tournament/advance', (req, res) => {
 
             const sf2Exists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2").get();
             if (sf2Exists.cnt === 0) {
+                checkBracketReady('lower');
                 generateSemifinal2();
                 return res.json({ success: true, message: 'Semifinale 2 generata: il perdente della semifinale 1 sfida i qualificati dal Lower Bracket' });
             }
@@ -285,6 +316,9 @@ router.post('/tournament/advance', (req, res) => {
             res.status(400).json({ error: 'Cannot advance from current phase: ' + state.phase });
         }
     } catch (err) {
+        if (err.code === 'PENDING_TIEBREAK') {
+            return res.status(400).json({ error: err.message });
+        }
         res.status(500).json({ error: err.message });
     }
 });
@@ -333,24 +367,79 @@ router.post('/tournament/clear-dates', (req, res) => {
 
 // === Helper functions ===
 
-// Best/worst F and N of a group by points, then game diff, then a random draw
-// for ties within the same category (per tournament rules).
+// Finds (or creates) the singles tiebreak match between two tied players of a group.
+function ensureTiebreakMatch(groupId, type, p1, p2) {
+    const existing = db.prepare(`
+        SELECT * FROM matches WHERE phase = 'tiebreak' AND group_id = ?
+        AND ((team1_player1_id = ? AND team2_player1_id = ?) OR (team1_player1_id = ? AND team2_player1_id = ?))
+    `).get(groupId, p1.player_id, p2.player_id, p2.player_id, p1.player_id);
+    if (existing) return existing;
+
+    const result = db.prepare(`
+        INSERT INTO matches (group_id, phase, type, team1_player1_id, team2_player1_id, match_order)
+        VALUES (?, 'tiebreak', ?, ?, ?, 1)
+    `).run(groupId, type, p1.player_id, p2.player_id);
+    return db.prepare('SELECT * FROM matches WHERE id = ?').get(result.lastInsertRowid);
+}
+
+// Best/worst F and N of a group by points, then game diff. A genuine tie (same
+// points AND same diff) can only ever involve the two players of one category
+// (mathematically impossible for 3+, or for an F and an N to tie - see the two
+// round-robin matches' point structure) and is resolved by a singles match, per
+// tournament rules, rather than a coin flip. Throws PENDING_TIEBREAK (after
+// creating the singles match if it doesn't exist yet) when that match hasn't
+// been played, so callers must check readiness before generating real matches.
 function pickBestAndWorst(groupId) {
     const players = db.prepare(`
         SELECT gp.*, p.name, p.category FROM group_players gp
         JOIN players p ON gp.player_id = p.id
         WHERE gp.group_id = ?
-        ORDER BY gp.points DESC, gp.diff DESC, RANDOM()
+        ORDER BY gp.points DESC, gp.diff DESC
     `).all(groupId);
 
-    const fs = players.filter(p => p.category === 'F');
-    const ns = players.filter(p => p.category === 'N');
+    const groupInfo = db.prepare('SELECT name, type FROM groups WHERE id = ?').get(groupId);
 
-    return { bestF: fs[0], worstF: fs[1], bestN: ns[0], worstN: ns[1] };
+    const resolve = (list) => {
+        if (list.length < 2) return { best: list[0], worst: list[1] };
+        const [p1, p2] = list;
+        if (p1.points !== p2.points || p1.diff !== p2.diff) {
+            return { best: p1, worst: p2 };
+        }
+
+        const tiebreak = ensureTiebreakMatch(groupId, groupInfo.type, p1, p2);
+        if (!tiebreak.completed) {
+            const err = new Error(`Pareggio in ${groupInfo.name} tra ${p1.name} e ${p2.name}: gioca il singolo di spareggio prima di continuare.`);
+            err.code = 'PENDING_TIEBREAK';
+            throw err;
+        }
+        const winnerId = tiebreak.score_team1 > tiebreak.score_team2 ? tiebreak.team1_player1_id : tiebreak.team2_player1_id;
+        return {
+            best: list.find(p => p.player_id === winnerId),
+            worst: list.find(p => p.player_id !== winnerId)
+        };
+    };
+
+    const fResult = resolve(players.filter(p => p.category === 'F'));
+    const nResult = resolve(players.filter(p => p.category === 'N'));
+
+    return { bestF: fResult.best, worstF: fResult.worst, bestN: nResult.best, worstN: nResult.worst };
+}
+
+// Verifies (and, as a side effect, creates any missing singles tiebreak matches
+// for) every group of the given bracket, WITHOUT writing any new
+// gironi/semifinal matches - callers should call this before generating real
+// matches so a mid-generation PENDING_TIEBREAK can't leave things half-created.
+function checkBracketReady(bracket) {
+    const groups = db.prepare("SELECT * FROM groups WHERE bracket = ?").all(bracket);
+    for (const g of groups) {
+        pickBestAndWorst(g.id);
+    }
 }
 
 function recalculateGroupStandings(groupId) {
-    const groupMatches = db.prepare('SELECT * FROM matches WHERE group_id = ? AND completed = 1').all(groupId);
+    // Tiebreak singles matches don't count toward group standings - they only
+    // exist to decide a tie, not to add points/games to it.
+    const groupMatches = db.prepare("SELECT * FROM matches WHERE group_id = ? AND completed = 1 AND phase != 'tiebreak'").all(groupId);
     
     // Reset all standings for this group
     db.prepare('UPDATE group_players SET points = 0, games_won = 0, games_lost = 0, diff = 0 WHERE group_id = ?').run(groupId);

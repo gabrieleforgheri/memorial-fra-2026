@@ -28,6 +28,32 @@ function issue(severity, section, msg) {
     console.log(`  ${icon} [${section}] ${msg}`);
 }
 
+// Scores any pending singles tiebreak matches (a real admin would just play them
+// on the spot when the "avanza fase" button tells them to). Returns how many were played.
+async function resolvePendingTiebreaks() {
+    const matches = await req('/tournament/matches');
+    const pending = (matches || []).filter(m => m.phase === 'tiebreak' && !m.completed);
+    for (const m of pending) {
+        await adminReq(`/admin/matches/${m.id}/score`, { method: 'PUT', body: JSON.stringify({ score_team1: 6, score_team2: 4 }) });
+    }
+    return pending.length;
+}
+
+// Advances the tournament, automatically playing any singles tiebreak the
+// advance uncovers and retrying, same as an admin would from the UI.
+async function advanceRobust() {
+    let result = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    // Each advance() call surfaces (and creates) at most one pending tiebreak at
+    // a time (it throws on the first tie it finds while checking groups), so a
+    // girone with ties in both ATP and WTA needs more than one retry to clear.
+    for (let attempt = 0; attempt < 5 && result._error && result.error && result.error.includes('Pareggio'); attempt++) {
+        const n = await resolvePendingTiebreaks();
+        console.log(`  ⚖️  Pareggio rilevato: giocato ${n} singolo/i di spareggio`);
+        result = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    }
+    return result;
+}
+
 async function run() {
     console.log('\n🏁 === SIMULAZIONE TORNEO 3° MEMORIAL FRA ===\n');
 
@@ -50,47 +76,48 @@ async function run() {
     if (afterDelete && afterDelete.length > 0) issue('BUG', 'RESET', `Ci sono ancora ${afterDelete.length} giocatori dopo il reset completo`);
     else console.log('  ✅ Reset OK - 0 giocatori\n');
 
-    // 3. REGISTRA 16 GIOCATORI (8M + 8F) con date
+    // 3. REGISTRA 16 GIOCATORI (8M + 8F) - la data del torneo e' fissa (1 Ago),
+    // registrata automaticamente dal server, non serve piu' passarla.
     console.log('📌 3. Registrazione 16 giocatori...');
     const maleNames = ['MARIO ROSSI', 'LUCA BIANCHI', 'ANDREA VERDI', 'MARCO NERI', 'PAOLO RUSSO', 'DAVIDE CONTI', 'FABIO RICCI', 'GIORGIO BRUNO'];
     const femaleNames = ['GIULIA ROSSI', 'SARA BIANCHI', 'CHIARA VERDI', 'ANNA NERI', 'ELENA RUSSO', 'MARTA CONTI', 'LAURA RICCI', 'SOFIA BRUNO'];
-    
-    const allDates = ['2026-07-28', '2026-08-02', '2026-08-05'];
-    
+
     for (const name of maleNames) {
-        const category = Math.random() < 0.5 ? 'F' : 'N';
-        const r = await req('/players', { method: 'POST', body: JSON.stringify({ name, gender: 'M', preferred_dates: allDates, category }) });
+        const r = await req('/players', { method: 'POST', body: JSON.stringify({ name, gender: 'M' }) });
         if (r._error) issue('BUG', 'REGISTRAZIONE', `Impossibile registrare ${name}`);
     }
     for (const name of femaleNames) {
-        const category = Math.random() < 0.5 ? 'F' : 'N';
-        const r = await req('/players', { method: 'POST', body: JSON.stringify({ name, gender: 'F', preferred_dates: allDates, category }) });
+        const r = await req('/players', { method: 'POST', body: JSON.stringify({ name, gender: 'F' }) });
         if (r._error) issue('BUG', 'REGISTRAZIONE', `Impossibile registrare ${name}`);
     }
-    
+
     const players = await req('/players');
     const males = players.filter(p => p.gender === 'M');
     const females = players.filter(p => p.gender === 'F');
     console.log(`  Registrati: ${males.length}M + ${females.length}F = ${players.length} totali`);
     if (males.length !== 8) issue('BUG', 'REGISTRAZIONE', `Attesi 8 maschi, trovati ${males.length}`);
     if (females.length !== 8) issue('BUG', 'REGISTRAZIONE', `Attese 8 femmine, trovate ${females.length}`);
+    if (players.some(p => p.accepted)) issue('BUG', 'REGISTRAZIONE', 'Un giocatore appena iscritto risulta già accettato');
 
-    // Check dates
+    // Check dates (auto-recorded as the fixed tournament date)
     const dateStats = await req('/players/dates');
     console.log(`  Date votate: ${JSON.stringify(dateStats)}`);
-    if (!dateStats || dateStats.length === 0) issue('BUG', 'DATE', 'Nessuna data salvata nonostante registrazioni con date');
+    if (!dateStats || dateStats.length === 0) issue('BUG', 'DATE', 'Nessuna data salvata nonostante registrazioni');
     else {
-        for (const d of dateStats) {
-            if (d.count !== 16) issue('WARN', 'DATE', `Data ${d.date}: ${d.count} voti (attesi 16)`);
-        }
+        const d = dateStats.find(d => d.date === '2026-08-01');
+        if (!d || d.count !== 16) issue('WARN', 'DATE', `1 Agosto: ${d ? d.count : 0} voti (attesi 16)`);
     }
 
-    // 4. ASSEGNA CATEGORIE (metà F, metà N)
-    console.log('\n📌 4. Assegnazione categorie F/N...');
-    // Males: first 4 = F (forti), last 4 = N (normali)
+    // 4. ACCETTA TUTTI GLI ISCRITTI, poi ASSEGNA CATEGORIE (metà F, metà N)
+    console.log('\n📌 4. Accettazione iscritti e assegnazione categorie F/N...');
+    for (const p of players) {
+        const r = await adminReq(`/admin/players/${p.id}/accept`, { method: 'PUT' });
+        if (r._error) issue('BUG', 'ACCETTAZIONE', `Impossibile accettare ${p.name}`);
+    }
+
     const malesForCat = players.filter(p => p.gender === 'M');
     const femalesForCat = players.filter(p => p.gender === 'F');
-    
+
     for (let i = 0; i < malesForCat.length; i++) {
         const cat = i < 4 ? 'F' : 'N';
         await adminReq(`/admin/players/${malesForCat[i].id}/category`, { method: 'PUT', body: JSON.stringify({ category: cat }) });
@@ -99,7 +126,7 @@ async function run() {
         const cat = i < 4 ? 'F' : 'N';
         await adminReq(`/admin/players/${femalesForCat[i].id}/category`, { method: 'PUT', body: JSON.stringify({ category: cat }) });
     }
-    
+
     const updatedPlayers = await req('/players');
     const noCategory = updatedPlayers.filter(p => !p.category);
     if (noCategory.length > 0) issue('BUG', 'CATEGORIE', `${noCategory.length} giocatori senza categoria dopo assegnazione`);
@@ -174,7 +201,7 @@ async function run() {
 
     // 8. VERIFICA BLOCCO REGISTRAZIONI
     console.log('📌 8. Test blocco registrazioni...');
-    const blockedReg = await req('/players', { method: 'POST', body: JSON.stringify({ name: 'HACKER', gender: 'M', preferred_dates: ['2026-08-01'], category: 'N' }) });
+    const blockedReg = await req('/players', { method: 'POST', body: JSON.stringify({ name: 'HACKER', gender: 'M' }) });
     if (!blockedReg._error) issue('BUG', 'SICUREZZA', 'Registrazione NON bloccata durante torneo!');
     else console.log('  ✅ Registrazione bloccata correttamente\n');
 
@@ -223,7 +250,7 @@ async function run() {
 
     // 11. AVANZA → LOWER BRACKET
     console.log('\n📌 11. Avanzamento → Lower Bracket...');
-    const advResult1 = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    const advResult1 = await advanceRobust();
     if (advResult1._error) { issue('BUG', 'AVANZAMENTO', `Impossibile avanzare a lower bracket: ${advResult1.error}`); }
     
     const stateAfterLB = await req('/tournament/state');
@@ -247,7 +274,7 @@ async function run() {
 
     // 12. AVANZA → ELIMINAZIONE (genera solo Semifinale 1: le due coppie upper si sfidano direttamente)
     console.log('📌 12. Avanzamento → Eliminazione diretta (Semifinale 1)...');
-    const advResult2 = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    const advResult2 = await advanceRobust();
     if (advResult2._error) { issue('BUG', 'AVANZAMENTO', `Impossibile avanzare a eliminazione: ${advResult2.error}`); }
 
     const stateAfterElim = await req('/tournament/state');
@@ -273,7 +300,7 @@ async function run() {
 
     // 13. AVANZA → genera Semifinale 2 (perdente SF1 vs migliori del Lower Bracket)
     console.log('📌 13. Generazione Semifinale 2...');
-    const advResult3 = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    const advResult3 = await advanceRobust();
     if (advResult3._error) { issue('BUG', 'SEMIFINALI', `Impossibile generare Semifinale 2: ${advResult3.error}`); }
 
     const matchesAfterSF2Gen = await req('/tournament/matches');
@@ -291,7 +318,7 @@ async function run() {
 
     // 14. AVANZA → genera finali
     console.log('📌 14. Generazione finali...');
-    const advResult4 = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    const advResult4 = await advanceRobust();
     if (advResult4._error) { issue('WARN', 'FINALI', `Avanzamento finali: ${advResult4.error || JSON.stringify(advResult4)}`); }
 
     const matchesFinal = await req('/tournament/matches');
@@ -309,7 +336,7 @@ async function run() {
 
     // 15. AVANZA → COMPLETAMENTO
     console.log('\n📌 15. Completamento torneo...');
-    const advResult5 = await adminReq('/admin/tournament/advance', { method: 'POST' });
+    const advResult5 = await advanceRobust();
     const stateEnd = await req('/tournament/state');
     console.log(`  Fase finale: ${stateEnd.phase}`);
     if (stateEnd.phase !== 'completed') issue('BUG', 'COMPLETAMENTO', `Torneo non completato: fase "${stateEnd.phase}"`);

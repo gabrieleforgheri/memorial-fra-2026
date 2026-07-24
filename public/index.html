@@ -45,6 +45,7 @@
                     <div class="tournament-status" id="home-tournament-status">
                         <span class="status-dot"></span> <span id="home-status-text">Stato: Iscrizioni Aperte</span>
                     </div>
+                    <div class="tournament-date-banner">📅 Il torneo si gioca <strong>Sabato 1 Agosto 2026</strong></div>
                 </div>
             </div>
             
@@ -201,19 +202,20 @@
                     <div class="rules-step-text">
                         <span class="rules-step-num">5</span>
                         <h3 class="font-heading">In caso di parità</h3>
-                        <p>Per decidere chi passa il turno si guarda, in ordine: <strong>punti</strong>, poi <strong>differenza game</strong> (vinti meno persi), e solo se serve scegliere tra due Forti o due Normali a pari merito, un <strong>sorteggio casuale</strong>.</p>
+                        <p>Per decidere chi passa il turno si guarda, in ordine: <strong>punti</strong>, poi <strong>differenza game</strong> (vinti meno persi). Se anche la differenza game è identica tra due Forti o due Normali, i due giocano un <strong>singolo</strong> (una partita 1 contro 1) per decidere chi passa: in un girone da 2 Forti + 2 Normali il pareggio può coinvolgere sempre e solo due giocatori della stessa categoria, mai tre.</p>
                     </div>
                     <div class="rules-step-diagram">
-                        <svg viewBox="0 0 280 140" class="rules-svg" role="img" aria-label="Ordine di importanza: punti, differenza game, sorteggio casuale">
+                        <svg viewBox="0 0 280 160" class="rules-svg" role="img" aria-label="Ordine di importanza: punti, differenza game, singolo di spareggio">
                             <rect x="10" y="10" width="260" height="34" rx="8" class="rules-box" />
                             <text x="26" y="31" class="rules-tier-label">1</text>
                             <text x="52" y="31" class="rules-box-title-sm" text-anchor="start">PUNTI</text>
                             <rect x="10" y="53" width="260" height="34" rx="8" class="rules-box" />
                             <text x="26" y="74" class="rules-tier-label">2</text>
                             <text x="52" y="74" class="rules-box-title-sm" text-anchor="start">DIFFERENZA GAME</text>
-                            <rect x="10" y="96" width="260" height="34" rx="8" class="rules-box-muted" />
+                            <rect x="10" y="96" width="260" height="52" rx="8" class="rules-box-accent" />
                             <text x="26" y="117" class="rules-tier-label">3</text>
-                            <text x="52" y="117" class="rules-box-title-sm" text-anchor="start">SORTEGGIO CASUALE</text>
+                            <text x="52" y="117" class="rules-box-title-sm" text-anchor="start">SINGOLO (1 vs 1)</text>
+                            <text x="52" y="136" class="rules-small-label" text-anchor="start">solo tra i due pari merito</text>
                         </svg>
                     </div>
                 </div>
@@ -225,6 +227,7 @@
             <div class="header-section text-center">
                 <h1 class="font-heading text-gradient mb-1">Iscrizione Giocatori</h1>
                 <p class="text-light">Unisciti ai <span id="total-registered" class="text-accent fw-700">0</span> giocatori già iscritti</p>
+                <div class="tournament-date-banner mt-1">📅 Il torneo si gioca <strong>Sabato 1 Agosto 2026</strong></div>
             </div>
 
             <div class="register-layout">
@@ -238,10 +241,6 @@
                         </div>
                         <div class="reg-step" data-step="2">
                             <span class="reg-step-num">2</span>
-                            <span class="reg-step-label">Calendario</span>
-                        </div>
-                        <div class="reg-step" data-step="3">
-                            <span class="reg-step-num">3</span>
                             <span class="reg-step-label">Conferma</span>
                         </div>
                     </div>
@@ -271,48 +270,17 @@
                             </div>
                         </div>
 
-                        <!-- STEP 2: Calendario -->
+                        <!-- STEP 2: Conferma -->
                         <div class="reg-step-panel hidden" data-step-panel="2">
-                            <div class="form-group" style="margin-bottom: 0.5rem;">
-                                <label>📅 In quali giorni saresti disponibile? (25 Lug - 15 Ago)</label>
-                                <p class="text-sm text-light mb-1">Seleziona <strong>tutti</strong> i giorni in cui sei libero/a. I giorni più <span style="color: #ff4757">rossi</span> hanno già molte adesioni!</p>
-                                <div id="date-calendar" class="calendar-grid">
-                                    <!-- JS -->
-                                </div>
-                                <div id="selected-date-display" class="mt-1 text-accent fw-600 hidden">
-                                    📌 <span id="selected-date-text"></span>
-                                </div>
-                            </div>
-                            <div class="d-flex justify-between mt-2">
-                                <button type="button" class="btn btn-outline reg-back-btn" data-back="1">← Indietro</button>
-                                <button type="button" class="btn btn-primary reg-next-btn" data-next="3">Avanti →</button>
-                            </div>
-                        </div>
-
-                        <!-- STEP 3: Conferma -->
-                        <div class="reg-step-panel hidden" data-step-panel="3">
                             <div class="reg-summary mb-2">
                                 <h4 class="font-heading mb-1">Riepilogo Iscrizione</h4>
                                 <div class="reg-summary-row"><span>Nome</span><strong id="summary-name">-</strong></div>
                                 <div class="reg-summary-row"><span>Categoria</span><strong id="summary-gender">-</strong></div>
-                                <div class="reg-summary-row"><span>Date disponibili</span><strong id="summary-dates">-</strong></div>
+                                <div class="reg-summary-row"><span>Data torneo</span><strong>1 Agosto 2026</strong></div>
                             </div>
-                            <div class="form-group">
-                                <label>🎾 Rispetto agli altri giocatori, ti reputi Forte o Normale?</label>
-                                <p class="text-sm text-light mb-1">Rispondi con sincerità, servirà a bilanciare i gironi 😏</p>
-                                <div class="gender-toggle">
-                                    <label class="gender-option">
-                                        <input type="radio" name="category" value="F">
-                                        <span class="gender-btn">🔥 Forte</span>
-                                    </label>
-                                    <label class="gender-option">
-                                        <input type="radio" name="category" value="N">
-                                        <span class="gender-btn">🌱 Normale</span>
-                                    </label>
-                                </div>
-                            </div>
+                            <p class="text-sm text-light mb-2">La suddivisione Forte/Normale sarà decisa dall'organizzazione per bilanciare i gironi.</p>
                             <div class="d-flex justify-between mt-2">
-                                <button type="button" class="btn btn-outline reg-back-btn" data-back="2">← Indietro</button>
+                                <button type="button" class="btn btn-outline reg-back-btn" data-back="1">← Indietro</button>
                                 <button type="submit" class="btn btn-primary glow-btn">Conferma Iscrizione ✅</button>
                             </div>
                         </div>
@@ -410,12 +378,14 @@
                     <div>
                         <h2 class="font-heading">Pannello di Controllo</h2>
                         <span id="admin-tournament-status" class="badge">Caricamento stato...</span>
+                        <span class="tournament-date-banner tournament-date-banner-sm">📅 1 Agosto 2026</span>
                     </div>
                     <button id="admin-logout-btn" class="btn btn-outline text-danger">Logout</button>
                 </div>
 
                 <div class="tournament-tabs mb-2">
-                    <button class="tab-btn admin-tab-btn active" data-tab="admin-giocatori">Giocatori</button>
+                    <button class="tab-btn admin-tab-btn active" data-tab="admin-iscritti">Iscritti</button>
+                    <button class="tab-btn admin-tab-btn" data-tab="admin-accettati">Accettati</button>
                     <button class="tab-btn admin-tab-btn" data-tab="admin-statistiche">Statistiche</button>
                     <button class="tab-btn admin-tab-btn" data-tab="admin-gironi">Gironi</button>
                     <button class="tab-btn admin-tab-btn" data-tab="admin-partite">Risultati</button>
@@ -423,7 +393,33 @@
                 </div>
 
                 <!-- Admin Tab: Giocatori -->
-                <div id="tab-admin-giocatori" class="admin-tab-content active">
+                <div id="tab-admin-iscritti" class="admin-tab-content active">
+                    <div class="card glass mb-2">
+                        <div class="d-flex justify-between align-center mb-1">
+                            <h3 class="font-heading">Iscritti in attesa di conferma</h3>
+                            <div class="stats-summary" id="admin-pending-stats"><!-- JS --></div>
+                        </div>
+                        <p class="text-sm text-light mb-2">Chi non viene accettato non partecipa al torneo e non entra nel sorteggio dei gironi.</p>
+                        <div class="table-responsive">
+                            <table class="data-table w-100" id="admin-pending-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Genere</th>
+                                        <th>Iscritto il</th>
+                                        <th>Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Tab: Accettati -->
+                <div id="tab-admin-accettati" class="admin-tab-content hidden">
                     <div class="card glass mb-2">
                         <div class="d-flex justify-between align-center mb-1">
                             <h3 class="font-heading">Gestione Categorie</h3>
