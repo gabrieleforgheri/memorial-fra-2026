@@ -128,7 +128,7 @@
                     <div class="rules-step-text">
                         <span class="rules-step-num">3</span>
                         <h3 class="font-heading">Chi passa, e dove</h3>
-                        <p>Il <span class="text-accent fw-600">miglior Forte</span> e il <span class="text-secondary fw-600">miglior Normale</span> di ogni girone (per punti, poi differenza game) vanno subito in <strong>Semifinale 1</strong>, in coppia con l'omologo dell'altro girone <em>invertito</em>: Forte del girone A con Normale del girone B, e viceversa.</p>
+                        <p>Il <span class="text-accent fw-600">miglior Forte</span> e il <span class="text-secondary fw-600">miglior Normale</span> di ogni girone (per punti) vanno subito in <strong>Semifinale 1</strong>, in coppia con l'omologo dell'altro girone <em>invertito</em>: Forte del girone A con Normale del girone B, e viceversa.</p>
                         <p>Gli altri due di ogni girone finiscono nel <strong>Lower Bracket</strong>: un girone aggiuntivo tra chi non si è qualificato direttamente, da cui usciranno i due che giocheranno la Semifinale 2.</p>
                     </div>
                     <div class="rules-step-diagram">
@@ -202,20 +202,67 @@
                     <div class="rules-step-text">
                         <span class="rules-step-num">5</span>
                         <h3 class="font-heading">In caso di parità</h3>
-                        <p>Per decidere chi passa il turno si guarda, in ordine: <strong>punti</strong>, poi <strong>differenza game</strong> (vinti meno persi). Se anche la differenza game è identica tra due Forti o due Normali, i due giocano un <strong>singolo</strong> (una partita 1 contro 1) per decidere chi passa: in un girone da 2 Forti + 2 Normali il pareggio può coinvolgere sempre e solo due giocatori della stessa categoria, mai tre.</p>
+                        <p>Per decidere chi passa il turno si guarda, in ordine: <strong>punti</strong>, e se sono identici tra due Forti o due Normali, i due giocano un <strong>singolo</strong> (una partita 1 contro 1) per decidere chi passa. La differenza game non viene più considerata. In un girone da 2 Forti + 2 Normali il pareggio può coinvolgere sempre e solo due giocatori della stessa categoria, mai tre.</p>
                     </div>
                     <div class="rules-step-diagram">
-                        <svg viewBox="0 0 280 160" class="rules-svg" role="img" aria-label="Ordine di importanza: punti, differenza game, singolo di spareggio">
+                        <svg viewBox="0 0 280 120" class="rules-svg" role="img" aria-label="Ordine di importanza: punti, poi singolo di spareggio">
                             <rect x="10" y="10" width="260" height="34" rx="8" class="rules-box" />
                             <text x="26" y="31" class="rules-tier-label">1</text>
                             <text x="52" y="31" class="rules-box-title-sm" text-anchor="start">PUNTI</text>
-                            <rect x="10" y="53" width="260" height="34" rx="8" class="rules-box" />
+                            <rect x="10" y="53" width="260" height="52" rx="8" class="rules-box-accent" />
                             <text x="26" y="74" class="rules-tier-label">2</text>
-                            <text x="52" y="74" class="rules-box-title-sm" text-anchor="start">DIFFERENZA GAME</text>
-                            <rect x="10" y="96" width="260" height="52" rx="8" class="rules-box-accent" />
-                            <text x="26" y="117" class="rules-tier-label">3</text>
-                            <text x="52" y="117" class="rules-box-title-sm" text-anchor="start">SINGOLO (1 vs 1)</text>
-                            <text x="52" y="136" class="rules-small-label" text-anchor="start">solo tra i due pari merito</text>
+                            <text x="52" y="74" class="rules-box-title-sm" text-anchor="start">SINGOLO (1 vs 1)</text>
+                            <text x="52" y="93" class="rules-small-label" text-anchor="start">solo tra i due pari merito</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="rules-step reverse">
+                    <div class="rules-step-text">
+                        <span class="rules-step-num">6</span>
+                        <h3 class="font-heading">Ordine di gioco</h3>
+                        <p>Le partite si giocano sempre in questo ordine: prima tutti i gironi <span class="text-secondary fw-600">WTA (donne)</span>, poi tutti i gironi <span class="text-accent fw-600">ATP (uomini)</span>; a seguire gli eventuali <strong>spareggi</strong> (prima WTA, poi ATP), poi il <strong>Lower Bracket</strong> (WTA, poi ATP) coi suoi eventuali spareggi, e infine <strong>Semifinale 1</strong>, <strong>Semifinale 2</strong> e <strong>Finale</strong>, ciascuna prima WTA e poi ATP.</p>
+                    </div>
+                    <div class="rules-step-diagram">
+                        <svg viewBox="0 0 300 260" class="rules-svg" role="img" aria-label="Ordine di gioco: gironi WTA, gironi ATP, spareggi, lower bracket, semifinali, finale">
+                            <rect x="10" y="8" width="130" height="30" rx="8" class="rules-box-accent" />
+                            <text x="75" y="28" text-anchor="middle" class="rules-box-title-sm">GIRONI WTA</text>
+                            <rect x="160" y="8" width="130" height="30" rx="8" class="rules-box" />
+                            <text x="225" y="28" text-anchor="middle" class="rules-box-title-sm">GIRONI ATP</text>
+
+                            <path d="M150,23 L160,23" class="rules-link" />
+                            <path d="M75,38 L75,50 L225,50 L225,38" class="rules-link-dim" />
+
+                            <rect x="10" y="58" width="130" height="26" rx="8" class="rules-box-muted" />
+                            <text x="75" y="76" text-anchor="middle" class="rules-small-label">spareggi WTA</text>
+                            <rect x="160" y="58" width="130" height="26" rx="8" class="rules-box-muted" />
+                            <text x="225" y="76" text-anchor="middle" class="rules-small-label">spareggi ATP</text>
+
+                            <path d="M75,84 L75,96 L225,96 L225,84" class="rules-link-dim" />
+
+                            <rect x="10" y="104" width="130" height="30" rx="8" class="rules-box-accent" />
+                            <text x="75" y="124" text-anchor="middle" class="rules-box-title-sm">LOWER WTA</text>
+                            <rect x="160" y="104" width="130" height="30" rx="8" class="rules-box" />
+                            <text x="225" y="124" text-anchor="middle" class="rules-box-title-sm">LOWER ATP</text>
+
+                            <path d="M75,134 L75,146 L225,146 L225,134" class="rules-link-dim" />
+
+                            <rect x="10" y="154" width="130" height="26" rx="8" class="rules-box-muted" />
+                            <text x="75" y="172" text-anchor="middle" class="rules-small-label">spareggi WTA</text>
+                            <rect x="160" y="154" width="130" height="26" rx="8" class="rules-box-muted" />
+                            <text x="225" y="172" text-anchor="middle" class="rules-small-label">spareggi ATP</text>
+
+                            <path d="M75,180 L75,192 L225,192 L225,180" class="rules-link-dim" />
+
+                            <rect x="10" y="200" width="85" height="26" rx="8" class="rules-box-accent" />
+                            <text x="52" y="217" text-anchor="middle" class="rules-small-label">SF1 W→A</text>
+                            <rect x="107" y="200" width="85" height="26" rx="8" class="rules-box-accent" />
+                            <text x="149" y="217" text-anchor="middle" class="rules-small-label">SF2 W→A</text>
+                            <rect x="204" y="200" width="86" height="26" rx="8" class="rules-box-accent rules-box-final" />
+                            <text x="247" y="217" text-anchor="middle" class="rules-small-label">FIN W→A</text>
+
+                            <path d="M75,192 L52,200 M225,192 L247,200" class="rules-link-dim" />
+                            <text x="150" y="245" text-anchor="middle" class="rules-small-label-dim">ogni fase: prima WTA, poi ATP</text>
                         </svg>
                     </div>
                 </div>

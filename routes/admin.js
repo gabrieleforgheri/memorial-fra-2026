@@ -6,6 +6,18 @@ const { generateGroupsLogistics, calculateScorePoints, validateBalancedCategorie
 
 router.use(auth); // Protect all admin routes
 
+// Global match play order: matches are sorted by schedule_order. Each phase
+// gets its own numeric block (with headroom for future phases/matches), and
+// WTA always sorts before ATP within a block via typeOffset, per tournament
+// running order: gironi WTA -> gironi ATP -> spareggi gironi WTA -> spareggi
+// gironi ATP -> lower WTA -> lower ATP -> spareggi lower WTA -> spareggi
+// lower ATP -> SF1 WTA -> SF1 ATP -> SF2 WTA -> SF2 ATP -> finale WTA -> finale ATP.
+const SCHEDULE_BLOCK = { gironi: 1000, tiebreak_gironi: 2000, lower: 3000, tiebreak_lower: 4000, sf1: 5000, sf2: 6000, final: 7000 };
+const TYPE_OFFSET = { WTA: 0, ATP: 100 };
+function scheduleValue(blockName, type, suborder) {
+    return SCHEDULE_BLOCK[blockName] + TYPE_OFFSET[type] + suborder;
+}
+
 // Accept a pending registration
 router.put('/players/:id/accept', (req, res) => {
     try {
@@ -99,31 +111,26 @@ router.post('/groups/generate', (req, res) => {
 
             const atpGroups = generateGroupsLogistics(males, 'ATP');
             const wtaGroups = generateGroupsLogistics(females, 'WTA');
-            
+
             const insertGroup = db.prepare('INSERT INTO groups (name, type) VALUES (?, ?)');
             const insertGroupPlayer = db.prepare('INSERT INTO group_players (group_id, player_id) VALUES (?, ?)');
-            const insertMatch = db.prepare(`
-                INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-                VALUES (?, 'gironi', ?, ?, ?, ?, ?, ?)
-            `);
 
-            for (const group of [...atpGroups, ...wtaGroups]) {
+            // WTA gironi play out entirely before ATP gironi; within each type
+            // matches interleave between Girone A/B/... rather than finishing
+            // one girone before starting the next.
+            [...wtaGroups, ...atpGroups].forEach(group => {
                 const groupResult = insertGroup.run(group.name, group.type);
-                const groupId = groupResult.lastInsertRowid;
-                
-                const fPlayers = group.players.filter(p => p.category === 'F');
-                const nPlayers = group.players.filter(p => p.category === 'N');
-                
+                group.id = groupResult.lastInsertRowid;
                 for (const p of group.players) {
-                    insertGroupPlayer.run(groupId, p.id);
+                    insertGroupPlayer.run(group.id, p.id);
                 }
-                
-                // Match 1: F1+N1 vs F2+N2
-                insertMatch.run(groupId, group.type, fPlayers[0].id, nPlayers[0].id, fPlayers[1].id, nPlayers[1].id, 1);
-                // Match 2: F1+N2 vs F2+N1
-                insertMatch.run(groupId, group.type, fPlayers[0].id, nPlayers[1].id, fPlayers[1].id, nPlayers[0].id, 2);
-            }
-            
+                group.fPlayers = group.players.filter(p => p.category === 'F');
+                group.nPlayers = group.players.filter(p => p.category === 'N');
+            });
+
+            scheduleGironiMatches(wtaGroups, 'WTA');
+            scheduleGironiMatches(atpGroups, 'ATP');
+
             db.prepare("UPDATE tournament_state SET phase = 'groups_ready' WHERE id = 1").run();
         })();
         res.json({ success: true });
@@ -156,32 +163,34 @@ router.put('/groups/manual', (req, res) => {
             db.prepare('DELETE FROM group_players').run();
             db.prepare('DELETE FROM matches').run();
             db.prepare('DELETE FROM groups').run();
-            
+
             const insertGroup = db.prepare('INSERT INTO groups (name, type) VALUES (?, ?)');
             const insertGroupPlayer = db.prepare('INSERT INTO group_players (group_id, player_id) VALUES (?, ?)');
-            const insertMatch = db.prepare(`
-                INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-                VALUES (?, 'gironi', ?, ?, ?, ?, ?, ?)
-            `);
-            
-            groups.forEach(group => {
+
+            const createdGroups = groups.map(group => {
                 const groupResult = insertGroup.run(group.name, group.type);
                 const groupId = groupResult.lastInsertRowid;
-                
+
                 const playerIds = group.player_ids;
                 playerIds.forEach(pid => insertGroupPlayer.run(groupId, pid));
-                
-                // Get player details to create matches
+
                 const players = playerIds.map(id => db.prepare('SELECT * FROM players WHERE id = ?').get(id));
-                const fPlayers = players.filter(p => p.category === 'F');
-                const nPlayers = players.filter(p => p.category === 'N');
-                
-                if (fPlayers.length >= 2 && nPlayers.length >= 2) {
-                    insertMatch.run(groupId, group.type, fPlayers[0].id, nPlayers[0].id, fPlayers[1].id, nPlayers[1].id, 1);
-                    insertMatch.run(groupId, group.type, fPlayers[0].id, nPlayers[1].id, fPlayers[1].id, nPlayers[0].id, 2);
-                }
+                return {
+                    id: groupId,
+                    type: group.type,
+                    fPlayers: players.filter(p => p.category === 'F'),
+                    nPlayers: players.filter(p => p.category === 'N')
+                };
             });
-            
+
+            // WTA gironi play out entirely before ATP gironi; within each type
+            // matches interleave between gironi rather than finishing one
+            // girone before starting the next.
+            ['WTA', 'ATP'].forEach(type => {
+                const typeGroups = createdGroups.filter(g => g.type === type && g.fPlayers.length >= 2 && g.nPlayers.length >= 2);
+                scheduleGironiMatches(typeGroups, type);
+            });
+
             db.prepare("UPDATE tournament_state SET phase = 'groups_ready' WHERE id = 1").run();
         })();
         res.json({ success: true });
@@ -367,26 +376,55 @@ router.post('/tournament/clear-dates', (req, res) => {
 
 // === Helper functions ===
 
+// Creates the 2 round-robin matches of a girone (F1+N1 vs F2+N2, F1+N2 vs F2+N1)
+// for every group of one type (WTA or ATP), with schedule_order set so matches
+// interleave across gironi (Girone A match 1, Girone B match 1, Girone A match 2,
+// Girone B match 2, ...) instead of finishing one girone before the next.
+function scheduleGironiMatches(groups, type) {
+    const insertMatch = db.prepare(`
+        INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order, schedule_order)
+        VALUES (?, 'gironi', ?, ?, ?, ?, ?, ?, ?)
+    `);
+    let suborder = 1;
+    for (let matchIdx = 0; matchIdx < 2; matchIdx++) {
+        for (const group of groups) {
+            const [f1, f2] = group.fPlayers;
+            const [n1, n2] = group.nPlayers;
+            const [t1p2, t2p2] = matchIdx === 0 ? [n1, n2] : [n2, n1];
+            insertMatch.run(
+                group.id, type,
+                f1.id, t1p2.id, f2.id, t2p2.id,
+                matchIdx + 1,
+                scheduleValue('gironi', type, suborder++)
+            );
+        }
+    }
+}
+
 // Finds (or creates) the singles tiebreak match between two tied players of a group.
-function ensureTiebreakMatch(groupId, type, p1, p2) {
+function ensureTiebreakMatch(groupId, type, p1, p2, blockName) {
     const existing = db.prepare(`
         SELECT * FROM matches WHERE phase = 'tiebreak' AND group_id = ?
         AND ((team1_player1_id = ? AND team2_player1_id = ?) OR (team1_player1_id = ? AND team2_player1_id = ?))
     `).get(groupId, p1.player_id, p2.player_id, p2.player_id, p1.player_id);
     if (existing) return existing;
 
+    const suborder = 1 + db.prepare(`
+        SELECT COUNT(*) as cnt FROM matches WHERE phase = 'tiebreak' AND type = ? AND schedule_order BETWEEN ? AND ?
+    `).get(type, SCHEDULE_BLOCK[blockName], SCHEDULE_BLOCK[blockName] + TYPE_OFFSET.ATP + 99).cnt;
+
     const result = db.prepare(`
-        INSERT INTO matches (group_id, phase, type, team1_player1_id, team2_player1_id, match_order)
-        VALUES (?, 'tiebreak', ?, ?, ?, 1)
-    `).run(groupId, type, p1.player_id, p2.player_id);
+        INSERT INTO matches (group_id, phase, type, team1_player1_id, team2_player1_id, match_order, schedule_order)
+        VALUES (?, 'tiebreak', ?, ?, ?, 1, ?)
+    `).run(groupId, type, p1.player_id, p2.player_id, scheduleValue(blockName, type, suborder));
     return db.prepare('SELECT * FROM matches WHERE id = ?').get(result.lastInsertRowid);
 }
 
-// Best/worst F and N of a group by points, then game diff. A genuine tie (same
-// points AND same diff) can only ever involve the two players of one category
-// (mathematically impossible for 3+, or for an F and an N to tie - see the two
-// round-robin matches' point structure) and is resolved by a singles match, per
-// tournament rules, rather than a coin flip. Throws PENDING_TIEBREAK (after
+// Best/worst F and N of a group by points only. A genuine tie can only ever
+// involve the two players of one category (mathematically impossible for 3+,
+// or for an F and an N to tie - see the two round-robin matches' point
+// structure) and is resolved by a singles match, per tournament rules, rather
+// than by game difference or a coin flip. Throws PENDING_TIEBREAK (after
 // creating the singles match if it doesn't exist yet) when that match hasn't
 // been played, so callers must check readiness before generating real matches.
 function pickBestAndWorst(groupId) {
@@ -394,19 +432,20 @@ function pickBestAndWorst(groupId) {
         SELECT gp.*, p.name, p.category FROM group_players gp
         JOIN players p ON gp.player_id = p.id
         WHERE gp.group_id = ?
-        ORDER BY gp.points DESC, gp.diff DESC
+        ORDER BY gp.points DESC
     `).all(groupId);
 
-    const groupInfo = db.prepare('SELECT name, type FROM groups WHERE id = ?').get(groupId);
+    const groupInfo = db.prepare('SELECT name, type, bracket FROM groups WHERE id = ?').get(groupId);
+    const blockName = groupInfo.bracket === 'lower' ? 'tiebreak_lower' : 'tiebreak_gironi';
 
     const resolve = (list) => {
         if (list.length < 2) return { best: list[0], worst: list[1] };
         const [p1, p2] = list;
-        if (p1.points !== p2.points || p1.diff !== p2.diff) {
+        if (p1.points !== p2.points) {
             return { best: p1, worst: p2 };
         }
 
-        const tiebreak = ensureTiebreakMatch(groupId, groupInfo.type, p1, p2);
+        const tiebreak = ensureTiebreakMatch(groupId, groupInfo.type, p1, p2, blockName);
         if (!tiebreak.completed) {
             const err = new Error(`Pareggio in ${groupInfo.name} tra ${p1.name} e ${p2.name}: gioca il singolo di spareggio prima di continuare.`);
             err.code = 'PENDING_TIEBREAK';
@@ -463,9 +502,10 @@ function recalculateGroupStandings(groupId) {
         `).run(m.points_team2, m.score_team2, m.score_team1, diff2, groupId, m.team2_player1_id, m.team2_player2_id);
     }
     
-    // Update positions
+    // Update positions (points only - game diff is no longer a ranking
+    // criterion; genuine point ties are resolved by a singles tiebreak match)
     const sorted = db.prepare(`
-        SELECT * FROM group_players WHERE group_id = ? ORDER BY points DESC, diff DESC
+        SELECT * FROM group_players WHERE group_id = ? ORDER BY points DESC
     `).all(groupId);
     
     sorted.forEach((p, i) => {
@@ -497,15 +537,15 @@ function generateLowerBracket() {
 
         // Match 1: cross-group pair vs cross-group pair
         db.prepare(`
-            INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-            VALUES (?, 'lower', ?, ?, ?, ?, ?, 1)
-        `).run(lowerGroupId, type, A.worstF.player_id, B.worstN.player_id, B.worstF.player_id, A.worstN.player_id);
+            INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order, schedule_order)
+            VALUES (?, 'lower', ?, ?, ?, ?, ?, 1, ?)
+        `).run(lowerGroupId, type, A.worstF.player_id, B.worstN.player_id, B.worstF.player_id, A.worstN.player_id, scheduleValue('lower', type, 1));
 
         // Match 2: same-origin-group pair vs same-origin-group pair
         db.prepare(`
-            INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-            VALUES (?, 'lower', ?, ?, ?, ?, ?, 2)
-        `).run(lowerGroupId, type, A.worstF.player_id, A.worstN.player_id, B.worstF.player_id, B.worstN.player_id);
+            INSERT INTO matches (group_id, phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order, schedule_order)
+            VALUES (?, 'lower', ?, ?, ?, ?, ?, 2, ?)
+        `).run(lowerGroupId, type, A.worstF.player_id, A.worstN.player_id, B.worstF.player_id, B.worstN.player_id, scheduleValue('lower', type, 2));
     });
 }
 
@@ -522,9 +562,9 @@ function generateSemifinal1() {
         if (!A.bestF || !A.bestN || !B.bestF || !B.bestN) return;
 
         db.prepare(`
-            INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-            VALUES ('semifinal', ?, ?, ?, ?, ?, 1)
-        `).run(type, A.bestF.player_id, B.bestN.player_id, B.bestF.player_id, A.bestN.player_id);
+            INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order, schedule_order)
+            VALUES ('semifinal', ?, ?, ?, ?, ?, 1, ?)
+        `).run(type, A.bestF.player_id, B.bestN.player_id, B.bestF.player_id, A.bestN.player_id, scheduleValue('sf1', type, 1));
     });
 }
 
@@ -549,9 +589,9 @@ function generateSemifinal2() {
             : { p1: sf1.team1_player1_id, p2: sf1.team1_player2_id };
 
         db.prepare(`
-            INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-            VALUES ('semifinal', ?, ?, ?, ?, ?, 2)
-        `).run(type, lower.bestF.player_id, lower.bestN.player_id, loser.p1, loser.p2);
+            INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order, schedule_order)
+            VALUES ('semifinal', ?, ?, ?, ?, ?, 2, ?)
+        `).run(type, lower.bestF.player_id, lower.bestN.player_id, loser.p1, loser.p2, scheduleValue('sf2', type, 1));
     });
 }
 
@@ -570,9 +610,9 @@ function generateFinals() {
         const winner2 = getWinner(sf2);
 
         db.prepare(`
-            INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order)
-            VALUES ('final', ?, ?, ?, ?, ?, 1)
-        `).run(type, winner1.p1, winner1.p2, winner2.p1, winner2.p2);
+            INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order, schedule_order)
+            VALUES ('final', ?, ?, ?, ?, ?, 1, ?)
+        `).run(type, winner1.p1, winner1.p2, winner2.p1, winner2.p2, scheduleValue('final', type, 1));
     });
 }
 

@@ -21,7 +21,7 @@ router.get('/groups', (req, res) => {
                 FROM group_players gp 
                 JOIN players p ON gp.player_id = p.id 
                 WHERE gp.group_id = ?
-                ORDER BY gp.points DESC, gp.diff DESC
+                ORDER BY gp.points DESC
             `).all(g.id);
             
             g.players = players;
@@ -50,7 +50,7 @@ router.get('/matches', (req, res) => {
             LEFT JOIN players t2p1 ON m.team2_player1_id = t2p1.id
             LEFT JOIN players t2p2 ON m.team2_player2_id = t2p2.id
             LEFT JOIN groups g ON m.group_id = g.id
-            ORDER BY m.phase, m.match_order
+            ORDER BY m.schedule_order, m.phase, m.match_order
         `).all();
         
         // Enrich matches with structured team data for frontend
@@ -156,7 +156,7 @@ router.get('/standings', (req, res) => {
             FROM players p
             LEFT JOIN group_players gp ON p.id = gp.player_id
             GROUP BY p.id
-            ORDER BY points DESC, game_diff DESC
+            ORDER BY points DESC
         `).all();
         
         // Add wins/losses counts from match data

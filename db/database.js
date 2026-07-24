@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS matches (
   points_team1 INTEGER DEFAULT NULL,
   points_team2 INTEGER DEFAULT NULL,
   match_order INTEGER DEFAULT 0,
+  schedule_order INTEGER DEFAULT 0,
   scheduled_time TEXT DEFAULT NULL,
   completed INTEGER DEFAULT 0,
   round_number INTEGER DEFAULT 1
@@ -136,18 +137,37 @@ try {
           points_team1 INTEGER DEFAULT NULL,
           points_team2 INTEGER DEFAULT NULL,
           match_order INTEGER DEFAULT 0,
+          schedule_order INTEGER DEFAULT 0,
           scheduled_time TEXT DEFAULT NULL,
           completed INTEGER DEFAULT 0,
           round_number INTEGER DEFAULT 1
         );
       `);
-      db.exec('INSERT INTO matches_new SELECT * FROM matches;');
+      db.exec(`
+        INSERT INTO matches_new (id, group_id, phase, type, team1_player1_id, team1_player2_id,
+          team2_player1_id, team2_player2_id, score_team1, score_team2, points_team1, points_team2,
+          match_order, scheduled_time, completed, round_number)
+        SELECT id, group_id, phase, type, team1_player1_id, team1_player2_id,
+          team2_player1_id, team2_player2_id, score_team1, score_team2, points_team1, points_team2,
+          match_order, scheduled_time, completed, round_number
+        FROM matches;
+      `);
       db.exec('DROP TABLE matches;');
       db.exec('ALTER TABLE matches_new RENAME TO matches;');
     })();
   }
 } catch (err) {
   console.error('matches table migration failed:', err.message);
+}
+
+// Auto-migrate to add schedule_order (global match play order) if it doesn't exist
+try {
+  const matchesCols = db.prepare("PRAGMA table_info(matches)").all();
+  if (!matchesCols.some(c => c.name === 'schedule_order')) {
+    db.exec('ALTER TABLE matches ADD COLUMN schedule_order INTEGER DEFAULT 0;');
+  }
+} catch (err) {
+  console.error('matches.schedule_order migration failed:', err.message);
 }
 
 module.exports = db;
