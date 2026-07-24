@@ -94,14 +94,13 @@ db.exec(`
   );
 `);
 
-// Auto-migrate to add accepted (admin approval) if it doesn't exist. Players that
-// already existed before this feature were already full participants - grandfather
-// them in as accepted rather than silently dropping them from group generation.
+// Auto-migrate to add accepted (admin approval) if it doesn't exist. Existing
+// registrants go through the same approval queue as new ones, rather than
+// being silently pre-accepted.
 try {
   const playersCols = db.prepare("PRAGMA table_info(players)").all();
   if (!playersCols.some(c => c.name === 'accepted')) {
     db.exec("ALTER TABLE players ADD COLUMN accepted INTEGER NOT NULL DEFAULT 0;");
-    db.exec("UPDATE players SET accepted = 1;");
   }
 } catch (err) {
   console.error('players.accepted migration failed:', err.message);
