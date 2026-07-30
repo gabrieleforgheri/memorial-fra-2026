@@ -199,16 +199,21 @@ router.put('/groups/manual', (req, res) => {
     }
 });
 
-// Start tournament (lock registrations)
-router.post('/tournament/start', (req, res) => {
+// Lock registrations
+router.post('/tournament/lock', (req, res) => {
     try {
-        // Verify groups exist
-        const groupCount = db.prepare('SELECT COUNT(*) as cnt FROM groups').get();
-        if (groupCount.cnt === 0) {
-            return res.status(400).json({ error: 'Generate groups before starting the tournament' });
-        }
-        db.prepare("UPDATE tournament_state SET phase = 'gironi', locked = 1, started_at = CURRENT_TIMESTAMP WHERE id = 1").run();
-        res.json({ success: true });
+        db.prepare("UPDATE tournament_state SET locked = 1 WHERE id = 1").run();
+        res.json({ success: true, message: 'Iscrizioni chiuse' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Unlock registrations
+router.post('/tournament/unlock', (req, res) => {
+    try {
+        db.prepare("UPDATE tournament_state SET locked = 0 WHERE id = 1").run();
+        res.json({ success: true, message: 'Iscrizioni aperte' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -102,9 +102,54 @@ const adminApp = {
             }
         };
 
-        bindControl('btn-start-tournament', 'startTournament', 'Avviare il torneo? Le iscrizioni verranno chiuse.', 'Torneo avviato! 🏆');
-        bindControl('btn-advance-phase', 'advanceTournament', 'Avanzare alla fase successiva?', 'Fase avanzata con successo!');
+        bindControl('btn-lock-tournament', 'lockTournament', 'Chiudere le iscrizioni?', 'Iscrizioni chiuse!');
+        bindControl('btn-unlock-tournament', 'unlockTournament', 'Aprire le iscrizioni?', 'Iscrizioni aperte!');
         bindControl('btn-reset-tournament', 'resetTournament', '⚠️ ATTENZIONE: Resettare tutto il torneo? Tutti i risultati andranno persi! Questa azione è IRREVERSIBILE.', 'Torneo resettato');
+        
+        // Drag and drop events
+        document.querySelectorAll('.dropzone').forEach(zone => {
+            if (zone.dataset.boundDrop) return;
+            zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.style.backgroundColor = 'rgba(255,255,255,0.1)';
+            });
+            zone.addEventListener('dragleave', e => {
+                zone.style.backgroundColor = 'rgba(0,0,0,0.2)';
+            });
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.style.backgroundColor = 'rgba(0,0,0,0.2)';
+                const id = e.dataTransfer.getData('text/plain');
+                if (!id) return;
+                const el = document.querySelector(`.draggable-player[data-id="${id}"]`);
+                if (el) zone.appendChild(el);
+            });
+            zone.dataset.boundDrop = 'true';
+        });
+
+        const btnSaveManual = document.getElementById('btn-save-manual-groups');
+        if (btnSaveManual && !btnSaveManual.dataset.bound) {
+            btnSaveManual.addEventListener('click', async () => {
+                const groups = [];
+                document.querySelectorAll('.group-drop-zone').forEach(zone => {
+                    const name = zone.dataset.groupName;
+                    const type = zone.dataset.groupType;
+                    const player_ids = Array.from(zone.querySelectorAll('.draggable-player')).map(el => parseInt(el.dataset.id));
+                    groups.push({ name, type, player_ids });
+                });
+                try {
+                    window.app.showLoader();
+                    await window.api.saveManualGroups(groups);
+                    window.app.toast('Gironi salvati con successo! 🎉');
+                    await this.loadDashboardData();
+                } catch (e) {
+                    window.app.toast(e.message || 'Errore salvataggio gironi', 'error');
+                } finally {
+                    window.app.hideLoader();
+                }
+            });
+            btnSaveManual.dataset.bound = 'true';
+        }
         
         // Simulation and Dates
         bindControl('btn-reset-simulation', 'resetSimulation', 'Ripristinare la simulazione? Tutte le partite, gironi e giocatori finti (senza data votata) verranno eliminati.', 'Simulazione ripristinata');
@@ -287,17 +332,16 @@ const adminApp = {
         });
         
         // Enable/disable buttons based on phase
-        const btnStart = document.getElementById('btn-start-tournament');
-        const btnAdvance = document.getElementById('btn-advance-phase');
+        const btnLock = document.getElementById('btn-lock-tournament');
+        const btnUnlock = document.getElementById('btn-unlock-tournament');
         
-        if (btnStart) {
-            btnStart.disabled = this.state.phase !== 'groups_ready';
-            btnStart.style.opacity = this.state.phase === 'groups_ready' ? '1' : '0.5';
+        if (btnLock) {
+            btnLock.disabled = this.state.locked === 1;
+            btnLock.style.opacity = this.state.locked === 1 ? '0.5' : '1';
         }
-        if (btnAdvance) {
-            const canAdvance = ['gironi', 'lower_bracket', 'elimination'].includes(this.state.phase);
-            btnAdvance.disabled = !canAdvance;
-            btnAdvance.style.opacity = canAdvance ? '1' : '0.5';
+        if (btnUnlock) {
+            btnUnlock.disabled = this.state.locked === 0;
+            btnUnlock.style.opacity = this.state.locked === 0 ? '0.5' : '1';
         }
     },
 
@@ -622,50 +666,81 @@ const adminApp = {
 
     renderGroups() {
         const container = document.getElementById('admin-groups-preview');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        if (!this.groups || this.groups.length === 0) {
-            container.innerHTML = '<p class="text-light text-center w-100">Nessun girone generato. Usa il pulsante sopra per generarli.</p>';
-            return;
+        if (container) {
+            container.innerHTML = '';
+            if (!this.groups || this.groups.length === 0) {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+                this.groups.forEach(group => {
+                    const card = document.createElement('div');
+                    card.className = 'girone-card';
+                    const isATP = group.type === 'ATP';
+                    const header = document.createElement('div');
+                    header.className = `girone-header ${isATP ? 'text-accent' : 'text-secondary'}`;
+                    header.textContent = group.name;
+                    const table = document.createElement('table');
+                    table.className = 'girone-table';
+                    table.innerHTML = `
+                        <thead><tr><th>Giocatore</th><th>Cat</th><th>Pt</th><th>D/G</th></tr></thead>
+                        <tbody>
+                            ${(group.players || []).map(p => `
+                                <tr>
+                                    <td><span class="fw-500">${window.app.escapeHtml(p.name)}</span></td>
+                                    <td>${p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '-'}</td>
+                                    <td class="fw-700">${p.points || 0}</td>
+                                    <td>${(p.diff || 0) > 0 ? '+' + p.diff : (p.diff || 0)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    `;
+                    card.appendChild(header);
+                    card.appendChild(table);
+                    container.appendChild(card);
+                });
+            }
         }
 
-        this.groups.forEach(group => {
-            const card = document.createElement('div');
-            card.className = 'girone-card';
-            
-            const isATP = group.type === 'ATP';
-            
-            const header = document.createElement('div');
-            header.className = `girone-header ${isATP ? 'text-accent' : 'text-secondary'}`;
-            header.textContent = group.name;
-            
-            const table = document.createElement('table');
-            table.className = 'girone-table';
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>Giocatore</th>
-                        <th>Cat</th>
-                        <th>Pt</th>
-                        <th>D/G</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${(group.players || []).map(p => `
-                        <tr>
-                            <td><span class="fw-500">${window.app.escapeHtml(p.name)}</span></td>
-                            <td>${p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '-'}</td>
-                            <td class="fw-700">${p.points || 0}</td>
-                            <td>${(p.diff || 0) > 0 ? '+' + p.diff : (p.diff || 0)}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            `;
-            
-            card.appendChild(header);
-            card.appendChild(table);
-            container.appendChild(card);
+        const unassignedList = document.getElementById('unassigned-players-list');
+        if (!unassignedList) return;
+        
+        const accepted = (this.players || []).filter(p => p.accepted);
+        const playerToGroup = {};
+        if (this.groups) {
+            this.groups.forEach(g => {
+                (g.players || []).forEach(p => { playerToGroup[p.id] = g.name; });
+            });
+        }
+        
+        unassignedList.innerHTML = '';
+        document.querySelectorAll('.group-drop-zone .player-list').forEach(el => el.innerHTML = '');
+
+        const createPlayerEl = (p) => {
+            const el = document.createElement('div');
+            el.className = 'draggable-player card bg-dark p-1 mb-05 border-accent text-sm d-flex justify-between align-center';
+            el.draggable = true;
+            el.dataset.id = p.id;
+            el.innerHTML = `<span>${p.gender==='M'?'🎾':'🏓'} ${window.app.escapeHtml(p.name)}</span> <span class="cat-badge cat-${(p.category||'N').toLowerCase()}">${p.category||'N'}</span>`;
+            el.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', p.id);
+                e.currentTarget.classList.add('dragging');
+                setTimeout(() => e.currentTarget.style.opacity = '0.5', 0);
+            });
+            el.addEventListener('dragend', (e) => {
+                e.currentTarget.classList.remove('dragging');
+                e.currentTarget.style.opacity = '1';
+            });
+            return el;
+        };
+
+        accepted.forEach(p => {
+            const groupName = playerToGroup[p.id];
+            let targetZone = unassignedList;
+            if (groupName) {
+                const groupZone = document.querySelector(`.group-drop-zone[data-group-name="${groupName}"] .player-list`);
+                if (groupZone) targetZone = groupZone;
+            }
+            targetZone.appendChild(createPlayerEl(p));
         });
     },
 

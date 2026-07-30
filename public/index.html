@@ -514,11 +514,43 @@
                 <!-- Admin Tab: Gironi -->
                 <div id="tab-admin-gironi" class="admin-tab-content hidden">
                     <div class="card glass mb-2 text-center">
-                        <h3 class="font-heading mb-1">Generazione Gironi</h3>
-                        <p class="text-light mb-2">Il sistema creerà automaticamente gironi bilanciati basati sulle categorie F (Forti) e N (Normali).</p>
-                        <button id="btn-generate-groups" class="btn btn-primary glow-btn">Genera Gironi Automaticamente</button>
+                        <h3 class="font-heading mb-1">Gestione Gironi</h3>
+                        <p class="text-light mb-2">Trascina i giocatori accettati nei gironi. Assicurati di bilanciare le categorie F e N in ogni girone.</p>
+                        <div class="d-flex gap-1 justify-center mb-2">
+                            <button id="btn-generate-groups" class="btn btn-secondary">Genera Automaticamente</button>
+                            <button id="btn-save-manual-groups" class="btn btn-primary glow-btn">Salva Gironi</button>
+                        </div>
                     </div>
-                    <div id="admin-groups-preview" class="gironi-grid mt-2">
+                    
+                    <div class="drag-drop-container" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div class="unassigned-players card glass" style="flex: 1; min-width: 250px;">
+                            <h4 class="font-heading mb-1 text-center">Da Assegnare</h4>
+                            <div id="unassigned-players-list" class="player-list custom-scrollbar dropzone" style="min-height: 200px; max-height: 500px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 8px;">
+                                <!-- JS -->
+                            </div>
+                        </div>
+                        
+                        <div class="groups-container" style="flex: 3; min-width: 300px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                            <!-- The 4 groups drop zones -->
+                            <div class="group-drop-zone card glass" data-group-name="ATP 1" data-group-type="ATP">
+                                <h4 class="font-heading text-center mb-1">ATP 1</h4>
+                                <div class="player-list dropzone" style="min-height: 150px; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 8px;"></div>
+                            </div>
+                            <div class="group-drop-zone card glass" data-group-name="ATP 2" data-group-type="ATP">
+                                <h4 class="font-heading text-center mb-1">ATP 2</h4>
+                                <div class="player-list dropzone" style="min-height: 150px; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 8px;"></div>
+                            </div>
+                            <div class="group-drop-zone card glass" data-group-name="WTA 1" data-group-type="WTA">
+                                <h4 class="font-heading text-center mb-1">WTA 1</h4>
+                                <div class="player-list dropzone" style="min-height: 150px; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 8px;"></div>
+                            </div>
+                            <div class="group-drop-zone card glass" data-group-name="WTA 2" data-group-type="WTA">
+                                <h4 class="font-heading text-center mb-1">WTA 2</h4>
+                                <div class="player-list dropzone" style="min-height: 150px; background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: 8px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="admin-groups-preview" class="gironi-grid mt-2 hidden">
                         <!-- JS -->
                     </div>
                 </div>
@@ -536,17 +568,11 @@
                 <!-- Admin Tab: Gestione Torneo -->
                 <div id="tab-admin-torneo" class="admin-tab-content hidden">
                     <div class="card glass mb-2">
-                        <h3 class="font-heading mb-1">Controllo Fasi</h3>
-                        <div class="tournament-stepper mb-3" id="tournament-stepper">
-                            <div class="step" data-phase="registration">Iscrizioni</div>
-                            <div class="step" data-phase="groups">Fase a Gironi</div>
-                            <div class="step" data-phase="elimination">Eliminazione Diretta</div>
-                            <div class="step" data-phase="completed">Completato</div>
-                        </div>
-                        
+                        <h3 class="font-heading mb-1">Gestione Iscrizioni</h3>
+                        <p class="text-light mb-2">Apri o chiudi le iscrizioni al torneo.</p>
                         <div class="d-flex gap-1 justify-center">
-                            <button id="btn-start-tournament" class="btn btn-primary glow-btn">Avvia Torneo</button>
-                            <button id="btn-advance-phase" class="btn btn-secondary">Avanza di Fase</button>
+                            <button id="btn-unlock-tournament" class="btn btn-secondary">Apri Iscrizioni</button>
+                            <button id="btn-lock-tournament" class="btn btn-primary glow-btn">Chiudi Iscrizioni</button>
                         </div>
                     </div>
 

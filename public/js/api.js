@@ -162,8 +162,31 @@ const api = {
         });
     },
 
+    async lockTournament() {
+        return this.request('/admin/tournament/lock', { method: 'POST' });
+    },
+
+    async unlockTournament() {
+        return this.request('/admin/tournament/unlock', { method: 'POST' });
+    },
+
     async advanceTournament() {
         return this.request('/admin/tournament/advance', { method: 'POST' });
+    },
+
+    async generateGroups() {
+        return this.request('/admin/groups/generate', { method: 'POST' });
+    },
+
+    async saveManualGroups(groups) {
+        return this.request('/admin/groups/manual', {
+            method: 'PUT',
+            body: JSON.stringify({ groups })
+        });
+    },
+
+    async clearDates() {
+        return this.request('/admin/tournament/clear-dates', { method: 'POST' });
     },
 
     async resetTournament() {
@@ -172,10 +195,6 @@ const api = {
 
     async resetSimulation() {
         return this.request('/admin/tournament/reset-simulation', { method: 'POST' });
-    },
-
-    async clearDates() {
-        return this.request('/admin/tournament/clear-dates', { method: 'POST' });
     }
 };
 
