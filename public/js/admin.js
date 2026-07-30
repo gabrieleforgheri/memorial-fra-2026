@@ -122,7 +122,10 @@ const adminApp = {
                 const id = e.dataTransfer.getData('text/plain');
                 if (!id) return;
                 const el = document.querySelector(`.draggable-player[data-id="${id}"]`);
-                if (el) zone.appendChild(el);
+                if (el) {
+                    zone.appendChild(el);
+                    if (window.adminApp) window.adminApp.updateLivePreview();
+                }
             });
             zone.dataset.boundDrop = 'true';
         });
@@ -640,7 +643,7 @@ const adminApp = {
         const unavailable = (this.players || []).filter(p => !(p.preferred_dates || []).includes(date));
 
         const renderPlayerRow = (p) => {
-            const icon = p.gender === 'M' ? '🎾' : '🏓';
+            const icon = p.gender === 'M' ? '👨' : '👩';
             const catBadge = p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '';
             return `<li class="player-item"><div class="d-flex align-center gap-1"><span>${icon}</span><span class="fw-500">${window.app.escapeHtml(p.name)}</span></div>${catBadge}</li>`;
         };
@@ -664,27 +667,40 @@ const adminApp = {
         `;
     },
 
-    renderGroups() {
+    updateLivePreview() {
         const container = document.getElementById('admin-groups-preview');
-        if (container) {
-            container.innerHTML = '';
-            if (!this.groups || this.groups.length === 0) {
-                container.classList.add('hidden');
-            } else {
-                container.classList.remove('hidden');
-                this.groups.forEach(group => {
-                    const card = document.createElement('div');
-                    card.className = 'girone-card';
-                    const isATP = group.type === 'ATP';
-                    const header = document.createElement('div');
-                    header.className = `girone-header ${isATP ? 'text-accent' : 'text-secondary'}`;
-                    header.textContent = group.name;
-                    const table = document.createElement('table');
-                    table.className = 'girone-table';
-                    table.innerHTML = `
+        if (!container) return;
+        
+        const zones = document.querySelectorAll('.group-drop-zone');
+        let hasGroups = false;
+        
+        let html = '';
+        zones.forEach(zone => {
+            const name = zone.dataset.groupName;
+            const type = zone.dataset.groupType;
+            const playersInZone = Array.from(zone.querySelectorAll('.draggable-player')).map(el => {
+                const id = parseInt(el.dataset.id);
+                return (this.players || []).find(p => p.id === id);
+            }).filter(Boolean);
+            
+            if (playersInZone.length > 0) hasGroups = true;
+            
+            const existingGroup = (this.groups || []).find(g => g.name === name);
+            const enrichedPlayers = playersInZone.map(p => {
+                const ep = existingGroup ? (existingGroup.players || []).find(ep => ep.id === p.id) : null;
+                return { ...p, points: ep ? ep.points : 0, diff: ep ? ep.diff : 0 };
+            });
+
+            if (enrichedPlayers.length > 0 || name.includes('Girone')) {
+                hasGroups = true;
+                const isATP = type === 'ATP';
+                html += `
+                <div class="girone-card">
+                    <div class="girone-header ${isATP ? 'text-accent' : 'text-secondary'}">${name}</div>
+                    <table class="girone-table">
                         <thead><tr><th>Giocatore</th><th>Cat</th><th>Pt</th><th>D/G</th></tr></thead>
                         <tbody>
-                            ${(group.players || []).map(p => `
+                            ${enrichedPlayers.map(p => `
                                 <tr>
                                     <td><span class="fw-500">${window.app.escapeHtml(p.name)}</span></td>
                                     <td>${p.category ? `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>` : '-'}</td>
@@ -693,14 +709,17 @@ const adminApp = {
                                 </tr>
                             `).join('')}
                         </tbody>
-                    `;
-                    card.appendChild(header);
-                    card.appendChild(table);
-                    container.appendChild(card);
-                });
+                    </table>
+                </div>`;
             }
-        }
+        });
 
+        container.innerHTML = html;
+        if (hasGroups) container.classList.remove('hidden');
+        else container.classList.add('hidden');
+    },
+
+    renderGroups() {
         const unassignedList = document.getElementById('unassigned-players-list');
         if (!unassignedList) return;
         
@@ -720,7 +739,7 @@ const adminApp = {
             el.className = 'draggable-player card bg-dark p-1 mb-05 border-accent text-sm d-flex justify-between align-center';
             el.draggable = true;
             el.dataset.id = p.id;
-            el.innerHTML = `<span>${p.gender==='M'?'🎾':'🏓'} ${window.app.escapeHtml(p.name)}</span> <span class="cat-badge cat-${(p.category||'N').toLowerCase()}">${p.category||'N'}</span>`;
+            el.innerHTML = `<span>${p.gender==='M'?'👨':'👩'} ${window.app.escapeHtml(p.name)}</span> <span class="cat-badge cat-${(p.category||'N').toLowerCase()}">${p.category||'N'}</span>`;
             el.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('text/plain', p.id);
                 e.currentTarget.classList.add('dragging');
@@ -742,6 +761,8 @@ const adminApp = {
             }
             targetZone.appendChild(createPlayerEl(p));
         });
+
+        this.updateLivePreview();
     },
 
     renderMatches() {
