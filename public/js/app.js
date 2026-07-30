@@ -115,7 +115,12 @@ const app = {
                 'completed': { text: '✅ Torneo Concluso', color: 'var(--text-muted)', border: 'rgba(148, 163, 184, 0.3)' }
             };
             
-            const config = phaseConfig[state.phase] || phaseConfig['registration'];
+            let config = phaseConfig[state.phase] || phaseConfig['registration'];
+            
+            if (state.locked === 1 && state.phase === 'registration') {
+                config = { text: '🔒 Iscrizioni Chiuse', color: 'var(--danger)', border: 'rgba(239, 68, 68, 0.3)' };
+            }
+            
             statusText.textContent = config.text;
             statusContainer.style.borderColor = config.border;
             statusContainer.style.color = config.color;
