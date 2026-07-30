@@ -6,7 +6,26 @@ const registrationApp = {
     async init() {
         this.bindEvents();
         await this.loadPlayers();
+        await this.checkTournamentState();
         this.goToStep(1);
+    },
+
+    async checkTournamentState() {
+        try {
+            const state = await window.api.getTournamentState();
+            const formContainer = document.getElementById('register-form-container');
+            const closedMessage = document.getElementById('register-closed-message');
+            
+            if (state && state.locked === 1) {
+                if (formContainer) formContainer.classList.add('hidden');
+                if (closedMessage) closedMessage.classList.remove('hidden');
+            } else {
+                if (formContainer) formContainer.classList.remove('hidden');
+                if (closedMessage) closedMessage.classList.add('hidden');
+            }
+        } catch (error) {
+            console.error('Failed to load tournament state', error);
+        }
     },
 
     bindEvents() {
@@ -126,7 +145,7 @@ const registrationApp = {
             const li = document.createElement('li');
             li.className = 'player-item';
 
-            let icon = p.gender === 'M' ? '🎾' : '🏓';
+            let icon = p.gender === 'M' ? '👨' : '👩';
             let catBadge = '';
             if (p.category) {
                 catBadge = `<span class="cat-badge cat-${p.category.toLowerCase()}">${p.category}</span>`;
