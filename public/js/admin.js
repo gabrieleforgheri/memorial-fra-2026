@@ -687,7 +687,7 @@ const adminApp = {
             
             const existingGroup = (this.groups || []).find(g => g.name === name);
             const enrichedPlayers = playersInZone.map(p => {
-                const ep = existingGroup ? (existingGroup.players || []).find(ep => ep.id === p.id) : null;
+                const ep = existingGroup ? (existingGroup.players || []).find(ep => ep.player_id === p.id) : null;
                 return { ...p, points: ep ? ep.points : 0, diff: ep ? ep.diff : 0 };
             });
 
@@ -727,7 +727,7 @@ const adminApp = {
         const playerToGroup = {};
         if (this.groups) {
             this.groups.forEach(g => {
-                (g.players || []).forEach(p => { playerToGroup[p.id] = g.name; });
+                (g.players || []).forEach(p => { playerToGroup[p.player_id] = g.name; });
             });
         }
         
