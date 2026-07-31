@@ -115,15 +115,17 @@ const registrationApp = {
             const players = await window.api.getPlayers();
             if (!players) return;
 
-            const males = players.filter(p => p.gender === 'M');
-            const females = players.filter(p => p.gender === 'F');
+            const acceptedPlayers = players.filter(p => p.accepted);
+
+            const males = acceptedPlayers.filter(p => p.gender === 'M');
+            const females = acceptedPlayers.filter(p => p.gender === 'F');
 
             this.renderList('players-list-m', males);
             this.renderList('players-list-f', females);
 
             document.getElementById('count-m').textContent = males.length;
             document.getElementById('count-f').textContent = females.length;
-            document.getElementById('total-registered').textContent = players.length;
+            document.getElementById('total-registered').textContent = acceptedPlayers.length;
 
         } catch (error) {
             console.error('Failed to load players', error);
