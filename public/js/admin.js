@@ -833,6 +833,11 @@ const adminApp = {
         document.getElementById('modal-score1').value = match.score_team1 !== null && match.score_team1 !== undefined ? match.score_team1 : 0;
         document.getElementById('modal-score2').value = match.score_team2 !== null && match.score_team2 !== undefined ? match.score_team2 : 0;
         
+        const tiebreakNote = document.getElementById('modal-tiebreak-note');
+        if (tiebreakNote) {
+            tiebreakNote.style.display = match.phase === 'tiebreak' ? 'block' : 'none';
+        }
+        
         this.updatePointsPreview();
         
         const modal = document.getElementById('score-modal');

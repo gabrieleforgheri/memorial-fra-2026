@@ -221,7 +221,8 @@
                     <div class="rules-step-text">
                         <span class="rules-step-num">6</span>
                         <h3 class="font-heading">Ordine di gioco</h3>
-                        <p>Le partite si giocano sempre in questo ordine: prima tutti i gironi <span class="text-secondary fw-600">WTA (donne)</span>, poi tutti i gironi <span class="text-accent fw-600">ATP (uomini)</span>; a seguire gli eventuali <strong>spareggi</strong> (prima WTA, poi ATP), poi il <strong>Lower Bracket</strong> (WTA, poi ATP) coi suoi eventuali spareggi, e infine <strong>Semifinale 1</strong>, <strong>Semifinale 2</strong> e <strong>Finale</strong>, ciascuna prima WTA e poi ATP.</p>
+                        <p>Le partite si giocano sempre in questo ordine: <strong>Gironi WTA</strong> (donne), <strong>eventuali spareggi WTA</strong>; poi <strong>Gironi ATP</strong> (uomini) ed <strong>eventuali spareggi ATP</strong>. A seguire il <strong>Lower Bracket</strong> (prima WTA con eventuali spareggi, poi ATP con i suoi spareggi), e infine <strong>Semifinale 1</strong>, <strong>Semifinale 2</strong> e <strong>Finale</strong>, ciascuna prima WTA e poi ATP.</p>
+                        <p class="mt-1 text-accent fw-600">Nota: Gli spareggi singoli si giocano a 4 game invece di 6.</p>
                     </div>
                     <div class="rules-step-diagram">
                         <svg viewBox="0 0 300 260" class="rules-svg" role="img" aria-label="Ordine di gioco: gironi WTA, gironi ATP, spareggi, lower bracket, semifinali, finale">
@@ -383,7 +384,6 @@
                         <option value="all">Tutte le fasi</option>
                         <option value="group">Fase a Gironi</option>
                         <option value="elimination">Eliminazione Diretta</option>
-                    </select>
                 </div>
                 <div id="matches-container" class="matches-list">
                     <!-- Injected via JS -->
@@ -619,6 +619,9 @@
                     <span class="text-success">T1: 0 pt</span>
                     <span class="text-success">T2: 0 pt</span>
                 </div>
+            </div>
+            <div class="text-center text-sm text-warning mb-2" id="modal-tiebreak-note" style="display: none;">
+                * Essendo uno spareggio, si gioca a 4 game invece che a 6 (es. 4-2 vittoria netta, 4-3 tie-break).
             </div>
             <div class="d-flex gap-1">
                 <button id="btn-cancel-score" class="btn btn-outline flex-1">Annulla</button>

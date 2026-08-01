@@ -8,14 +8,26 @@ router.use(auth); // Protect all admin routes
 
 // Global match play order: matches are sorted by schedule_order. Each phase
 // gets its own numeric block (with headroom for future phases/matches), and
-// WTA always sorts before ATP within a block via typeOffset, per tournament
-// running order: gironi WTA -> gironi ATP -> spareggi gironi WTA -> spareggi
-// gironi ATP -> lower WTA -> lower ATP -> spareggi lower WTA -> spareggi
-// lower ATP -> SF1 WTA -> SF1 ATP -> SF2 WTA -> SF2 ATP -> finale WTA -> finale ATP.
-const SCHEDULE_BLOCK = { gironi: 1000, tiebreak_gironi: 2000, lower: 3000, tiebreak_lower: 4000, sf1: 5000, sf2: 6000, final: 7000 };
-const TYPE_OFFSET = { WTA: 0, ATP: 100 };
+// WTA always sorts before ATP, but for gironi and lower bracket, tiebreaks happen immediately after the respective category
+const SCHEDULE_BLOCK = {
+    'WTA_gironi': 1000,
+    'WTA_tiebreak_gironi': 1100,
+    'ATP_gironi': 1200,
+    'ATP_tiebreak_gironi': 1300,
+    'WTA_lower': 1400,
+    'WTA_tiebreak_lower': 1500,
+    'ATP_lower': 1600,
+    'ATP_tiebreak_lower': 1700,
+    'WTA_sf1': 1800,
+    'ATP_sf1': 1900,
+    'WTA_sf2': 2000,
+    'ATP_sf2': 2100,
+    'WTA_final': 2200,
+    'ATP_final': 2300
+};
+
 function scheduleValue(blockName, type, suborder) {
-    return SCHEDULE_BLOCK[blockName] + TYPE_OFFSET[type] + suborder;
+    return SCHEDULE_BLOCK[`${type}_${blockName}`] + suborder;
 }
 
 // Accept a pending registration
@@ -416,7 +428,7 @@ function ensureTiebreakMatch(groupId, type, p1, p2, blockName) {
 
     const suborder = 1 + db.prepare(`
         SELECT COUNT(*) as cnt FROM matches WHERE phase = 'tiebreak' AND type = ? AND schedule_order BETWEEN ? AND ?
-    `).get(type, SCHEDULE_BLOCK[blockName], SCHEDULE_BLOCK[blockName] + TYPE_OFFSET.ATP + 99).cnt;
+    `).get(type, SCHEDULE_BLOCK[`${type}_${blockName}`], SCHEDULE_BLOCK[`${type}_${blockName}`] + 99).cnt;
 
     const result = db.prepare(`
         INSERT INTO matches (group_id, phase, type, team1_player1_id, team2_player1_id, match_order, schedule_order)
