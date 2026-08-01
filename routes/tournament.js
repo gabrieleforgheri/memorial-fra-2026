@@ -129,11 +129,40 @@ router.get('/bracket', (req, res) => {
                 score_team1: m.score_team1,
                 score_team2: m.score_team2,
                 completed: m.completed,
-                group_name: m.group_name
+                group_name: m.group_name,
+                match_order: m.match_order
             };
             
             if (bracket[type] && bracket[type][phase]) {
                 bracket[type][phase].push(matchData);
+            }
+        });
+        
+        // Fill placeholders
+        ['ATP', 'WTA'].forEach(type => {
+            // Lower Bracket (2 matches)
+            const lowerMatches = bracket[type].lower;
+            if (!lowerMatches.find(m => m.match_order === 1)) {
+                lowerMatches.push({ id: 'p_l1_'+type, match_order: 1, team1_name: '3° F Gir. A + 3° N Gir. B', team2_name: '3° F Gir. B + 3° N Gir. A', score_team1: '-', score_team2: '-', completed: 0 });
+            }
+            if (!lowerMatches.find(m => m.match_order === 2)) {
+                lowerMatches.push({ id: 'p_l2_'+type, match_order: 2, team1_name: '3° F Gir. A + 3° N Gir. A', team2_name: '3° F Gir. B + 3° N Gir. B', score_team1: '-', score_team2: '-', completed: 0 });
+            }
+            lowerMatches.sort((a, b) => (a.match_order || 0) - (b.match_order || 0));
+            
+            // Semifinals (2 matches)
+            const sfMatches = bracket[type].semifinal;
+            if (!sfMatches.find(m => m.match_order === 1)) {
+                sfMatches.push({ id: 'p_sf1_'+type, match_order: 1, team1_name: '1° F Gir. A + 1° N Gir. B', team2_name: '1° F Gir. B + 1° N Gir. A', score_team1: '-', score_team2: '-', completed: 0 });
+            }
+            if (!sfMatches.find(m => m.match_order === 2)) {
+                sfMatches.push({ id: 'p_sf2_'+type, match_order: 2, team1_name: 'Vincitori Lower Bracket', team2_name: 'Perdenti Semifinale 1', score_team1: '-', score_team2: '-', completed: 0 });
+            }
+            sfMatches.sort((a, b) => (a.match_order || 0) - (b.match_order || 0));
+            
+            // Final (1 match)
+            if (bracket[type].final.length === 0) {
+                bracket[type].final.push({ id: 'p_f_'+type, match_order: 1, team1_name: 'Vincitori Semifinale 1', team2_name: 'Vincitori Semifinale 2', score_team1: '-', score_team2: '-', completed: 0 });
             }
         });
         
