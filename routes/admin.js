@@ -258,9 +258,21 @@ router.put('/matches/:id/score', (req, res) => {
             `).run(s1, s2, pts1, pts2, req.params.id);
             
             // Recalculate group standings for this match's group
-            const match = db.prepare('SELECT group_id FROM matches WHERE id = ?').get(req.params.id);
+            const match = db.prepare('SELECT group_id, phase FROM matches WHERE id = ?').get(req.params.id);
             if (match && match.group_id) {
                 recalculateGroupStandings(match.group_id);
+                
+                // If all matches in this group for the current phase are completed, auto-evaluate tiebreaks
+                const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE group_id = ? AND phase = ? AND completed = 0").get(match.group_id, match.phase);
+                if (unfinished.cnt === 0) {
+                    try {
+                        pickBestAndWorst(match.group_id);
+                    } catch (err) {
+                        // PENDING_TIEBREAK means a tie was detected and a tiebreak match was just created.
+                        // We safely ignore this error here since the side-effect (creation) is what we wanted.
+                        if (err.code !== 'PENDING_TIEBREAK') throw err;
+                    }
+                }
             }
         })();
         res.json({ success: true });
