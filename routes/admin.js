@@ -275,6 +275,15 @@ router.put('/matches/:id/score', (req, res) => {
                 }
             }
         })();
+        
+        // Auto-advance tournament if all conditions are met
+        try {
+            autoAdvanceTournament();
+        } catch (err) {
+            console.error("Auto-advance error:", err);
+            // Ignore error, we still successfully saved the score
+        }
+        
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -643,6 +652,56 @@ function generateFinals() {
             VALUES ('final', ?, ?, ?, ?, ?, 1, ?)
         `).run(type, winner1.p1, winner1.p2, winner2.p1, winner2.p2, scheduleValue('final', type, 1));
     });
+}
+
+function autoAdvanceTournament() {
+    const state = db.prepare('SELECT * FROM tournament_state WHERE id = 1').get();
+    
+    if (state.phase === 'gironi') {
+        const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase IN ('gironi', 'tiebreak') AND completed = 0").get();
+        if (unfinished.cnt === 0) {
+            try { checkBracketReady('upper'); } catch (err) { return; /* Pending tiebreak just created */ }
+            generateLowerBracket();
+            db.prepare("UPDATE tournament_state SET phase = 'lower_bracket' WHERE id = 1").run();
+            // Call again in case we can skip lower_bracket if it has no matches (not likely, but safe)
+            autoAdvanceTournament();
+        }
+    } else if (state.phase === 'lower_bracket') {
+        const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase IN ('lower', 'tiebreak') AND completed = 0").get();
+        if (unfinished.cnt === 0) {
+            try { checkBracketReady('upper'); } catch (err) { return; }
+            generateSemifinal1();
+            db.prepare("UPDATE tournament_state SET phase = 'elimination' WHERE id = 1").run();
+            autoAdvanceTournament();
+        }
+    } else if (state.phase === 'elimination') {
+        // SF1 -> SF2
+        const sf1Unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 1 AND completed = 0").get();
+        if (sf1Unfinished.cnt === 0) {
+            const sf2Exists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2").get();
+            if (sf2Exists.cnt === 0) {
+                try { checkBracketReady('lower'); } catch (err) { return; }
+                generateSemifinal2();
+            }
+        }
+        
+        // SF2 -> Final
+        const sf2Unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2 AND completed = 0").get();
+        const sf2Exists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2").get();
+        if (sf2Exists.cnt > 0 && sf2Unfinished.cnt === 0) {
+            const finalsExist = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
+            if (finalsExist.cnt === 0) {
+                generateFinals();
+            }
+        }
+        
+        // Final -> Completed
+        const finalsUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final' AND completed = 0").get();
+        const finalsExists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
+        if (finalsExists.cnt > 0 && finalsUnfinished.cnt === 0) {
+            db.prepare("UPDATE tournament_state SET phase = 'completed' WHERE id = 1").run();
+        }
+    }
 }
 
 module.exports = router;
