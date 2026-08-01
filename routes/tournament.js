@@ -21,8 +21,8 @@ router.get('/groups', (req, res) => {
                 FROM group_players gp 
                 JOIN players p ON gp.player_id = p.id 
                 WHERE gp.group_id = ?
-                ORDER BY gp.points DESC
-            `).all(g.id);
+                ORDER BY gp.points DESC, CASE WHEN ? = 'ATP' THEN gp.diff ELSE 0 END DESC
+            `).all(g.id, g.type);
             
             g.players = players;
             // Add gender field derived from type for frontend compatibility
@@ -185,7 +185,7 @@ router.get('/standings', (req, res) => {
             FROM players p
             LEFT JOIN group_players gp ON p.id = gp.player_id
             GROUP BY p.id
-            ORDER BY points DESC
+            ORDER BY points DESC, CASE WHEN p.gender = 'M' THEN COALESCE(SUM(gp.diff), 0) ELSE 0 END DESC
         `).all();
         
         // Add wins/losses counts from match data

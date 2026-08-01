@@ -478,8 +478,21 @@ function pickBestAndWorst(groupId) {
 
     const resolve = (list) => {
         if (list.length < 2) return { best: list[0], worst: list[1] };
+        
+        // Sort list to ensure it obeys the type rules even if points are tied
+        list.sort((a, b) => {
+            if (a.points !== b.points) return b.points - a.points;
+            if (groupInfo.type === 'ATP' && a.diff !== b.diff) return b.diff - a.diff;
+            return 0; // Tied
+        });
+        
         const [p1, p2] = list;
+        
         if (p1.points !== p2.points) {
+            return { best: p1, worst: p2 };
+        }
+        
+        if (groupInfo.type === 'ATP' && p1.diff !== p2.diff) {
             return { best: p1, worst: p2 };
         }
 
@@ -540,11 +553,14 @@ function recalculateGroupStandings(groupId) {
         `).run(m.points_team2, m.score_team2, m.score_team1, diff2, groupId, m.team2_player1_id, m.team2_player2_id);
     }
     
-    // Update positions (points only - game diff is no longer a ranking
-    // criterion; genuine point ties are resolved by a singles tiebreak match)
+    const groupInfo = db.prepare('SELECT type FROM groups WHERE id = ?').get(groupId);
+    
+    // Update positions (for ATP: points then diff. For WTA: points only.
+    // Genuine ties are resolved by singles tiebreak match)
     const sorted = db.prepare(`
-        SELECT * FROM group_players WHERE group_id = ? ORDER BY points DESC
-    `).all(groupId);
+        SELECT * FROM group_players WHERE group_id = ? 
+        ORDER BY points DESC, CASE WHEN ? = 'ATP' THEN diff ELSE 0 END DESC
+    `).all(groupId, groupInfo.type);
     
     sorted.forEach((p, i) => {
         db.prepare('UPDATE group_players SET position = ? WHERE id = ?').run(i + 1, p.id);

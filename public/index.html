@@ -202,17 +202,28 @@
                     <div class="rules-step-text">
                         <span class="rules-step-num">5</span>
                         <h3 class="font-heading">In caso di parità</h3>
-                        <p>Per decidere chi passa il turno si guarda, in ordine: <strong>punti</strong>, e se sono identici tra due Forti o due Normali, i due giocano un <strong>singolo</strong> (una partita 1 contro 1) per decidere chi passa. La differenza game non viene più considerata. In un girone da 2 Forti + 2 Normali il pareggio può coinvolgere sempre e solo due giocatori della stessa categoria, mai tre.</p>
+                        <p>Per decidere chi passa il turno si guarda in ordine:</p>
+                        <ul class="text-light mb-1" style="padding-left: 1.5rem;">
+                            <li><strong>Per le Donne (WTA):</strong> Punti. Se pari, giocano subito un <strong>singolo di spareggio</strong> (1 vs 1).</li>
+                            <li><strong>Per gli Uomini (ATP):</strong> 1. Punti, 2. Differenza Game. Se anche la differenza game è pari, giocano il <strong>singolo di spareggio</strong>.</li>
+                        </ul>
+                        <p>In un girone da 2 Forti + 2 Normali, il pareggio può coinvolgere sempre e solo due giocatori della stessa categoria, mai tre.</p>
                     </div>
                     <div class="rules-step-diagram">
-                        <svg viewBox="0 0 280 120" class="rules-svg" role="img" aria-label="Ordine di importanza: punti, poi singolo di spareggio">
+                        <svg viewBox="0 0 280 120" class="rules-svg" role="img" aria-label="Ordine di importanza per spareggio">
                             <rect x="10" y="10" width="260" height="34" rx="8" class="rules-box" />
                             <text x="26" y="31" class="rules-tier-label">1</text>
-                            <text x="52" y="31" class="rules-box-title-sm" text-anchor="start">PUNTI</text>
-                            <rect x="10" y="53" width="260" height="52" rx="8" class="rules-box-accent" />
-                            <text x="26" y="74" class="rules-tier-label">2</text>
-                            <text x="52" y="74" class="rules-box-title-sm" text-anchor="start">SINGOLO (1 vs 1)</text>
-                            <text x="52" y="93" class="rules-small-label" text-anchor="start">solo tra i due pari merito</text>
+                            <text x="52" y="31" class="rules-box-title-sm" text-anchor="start">PUNTI (Tutti)</text>
+                            
+                            <rect x="10" y="50" width="125" height="42" rx="8" class="rules-box-muted" />
+                            <text x="22" y="68" class="rules-tier-label">2</text>
+                            <text x="42" y="68" class="rules-box-title-sm" text-anchor="start" style="font-size: 8px;">DIFF. GAME (Solo ATP)</text>
+                            <text x="42" y="82" class="rules-small-label" text-anchor="start">se punti pari</text>
+                            
+                            <rect x="145" y="50" width="125" height="42" rx="8" class="rules-box-accent" />
+                            <text x="157" y="68" class="rules-tier-label">3</text>
+                            <text x="177" y="68" class="rules-box-title-sm" text-anchor="start" style="font-size: 9px;">SINGOLO</text>
+                            <text x="177" y="82" class="rules-small-label" text-anchor="start">se ancora pari</text>
                         </svg>
                     </div>
                 </div>
