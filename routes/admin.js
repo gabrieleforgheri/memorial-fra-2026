@@ -552,14 +552,19 @@ function recalculateGroupStandings(groupId) {
 }
 
 function generateLowerBracket() {
-    // For each type (ATP/WTA): the F and N who did NOT qualify from each upper
-    // group (i.e. the ones who aren't that group's best F / best N) form the
-    // Lower bracket girone. Round robin, cross-paired by origin group first
-    // (match 1), then paired within their own original group (match 2) - the
-    // two are the only possible F+N pairings among these 4 players.
     ['ATP', 'WTA'].forEach(type => {
+        // Check if upper bracket is fully completed for this type
+        const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE type = ? AND phase IN ('gironi', 'tiebreak') AND completed = 0").get(type);
+        if (unfinished.cnt > 0) return;
+        
+        // Check if already generated
+        const lowerExists = db.prepare("SELECT COUNT(*) as cnt FROM groups WHERE type = ? AND bracket = 'lower'").get(type);
+        if (lowerExists.cnt > 0) return;
+
         const groups = db.prepare("SELECT * FROM groups WHERE type = ? AND bracket = 'upper'").all(type);
         if (groups.length < 2) return;
+
+        try { checkBracketReadyType('upper', type); } catch (err) { return; }
 
         const A = pickBestAndWorst(groups[0].id);
         const B = pickBestAndWorst(groups[1].id);
@@ -591,8 +596,20 @@ function generateLowerBracket() {
 // Best F from Group A + Best N from Group B vs Best F from Group B + Best N from Group A.
 function generateSemifinal1() {
     ['ATP', 'WTA'].forEach(type => {
+        // Semifinal 1 needs Lower Bracket to be finished so it knows who lost
+        const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE type = ? AND phase IN ('lower', 'tiebreak') AND completed = 0").get(type);
+        // Wait, SF1 doesn't need Lower Bracket! SF1 is just the upper bracket winners.
+        // It just needs gironi to be finished.
+        const gironiUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE type = ? AND phase IN ('gironi', 'tiebreak') AND completed = 0").get(type);
+        if (gironiUnfinished.cnt > 0) return;
+        
+        const sf1Exists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE type = ? AND phase = 'semifinal' AND match_order = 1").get(type);
+        if (sf1Exists.cnt > 0) return;
+
         const upperGroups = db.prepare("SELECT * FROM groups WHERE type = ? AND bracket = 'upper'").all(type);
         if (upperGroups.length < 2) return;
+
+        try { checkBracketReadyType('upper', type); } catch (err) { return; }
 
         const A = pickBestAndWorst(upperGroups[0].id);
         const B = pickBestAndWorst(upperGroups[1].id);
@@ -612,6 +629,10 @@ function generateSemifinal2() {
     ['ATP', 'WTA'].forEach(type => {
         const sf1 = db.prepare("SELECT * FROM matches WHERE phase = 'semifinal' AND type = ? AND match_order = 1").get(type);
         if (!sf1 || !sf1.completed) return;
+        
+        // SF2 needs Lower Bracket to be completed
+        const lowerUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE type = ? AND phase IN ('lower', 'tiebreak') AND completed = 0").get(type);
+        if (lowerUnfinished.cnt > 0) return;
 
         const alreadyGenerated = db.prepare("SELECT id FROM matches WHERE phase = 'semifinal' AND type = ? AND match_order = 2").get(type);
         if (alreadyGenerated) return;
@@ -619,8 +640,10 @@ function generateSemifinal2() {
         const lowerGroup = db.prepare("SELECT * FROM groups WHERE type = ? AND bracket = 'lower'").get(type);
         if (!lowerGroup) return;
 
-        const lower = pickBestAndWorst(lowerGroup.id);
-        if (!lower.bestF || !lower.bestN) return;
+        try { checkBracketReadyType('lower', type); } catch (err) { return; }
+
+        const lowerResult = pickBestAndWorst(lowerGroup.id);
+        if (!lowerResult.bestF || !lowerResult.bestN) return;
 
         const loser = sf1.score_team1 > sf1.score_team2
             ? { p1: sf1.team2_player1_id, p2: sf1.team2_player2_id }
@@ -629,7 +652,7 @@ function generateSemifinal2() {
         db.prepare(`
             INSERT INTO matches (phase, type, team1_player1_id, team1_player2_id, team2_player1_id, team2_player2_id, match_order, schedule_order)
             VALUES ('semifinal', ?, ?, ?, ?, ?, 2, ?)
-        `).run(type, lower.bestF.player_id, lower.bestN.player_id, loser.p1, loser.p2, scheduleValue('sf2', type, 1));
+        `).run(type, lowerResult.bestF.player_id, lowerResult.bestN.player_id, loser.p1, loser.p2, scheduleValue('sf2', type, 1));
     });
 }
 
@@ -639,6 +662,9 @@ function generateFinals() {
         const sf1 = db.prepare("SELECT * FROM matches WHERE phase = 'semifinal' AND type = ? AND match_order = 1").get(type);
         const sf2 = db.prepare("SELECT * FROM matches WHERE phase = 'semifinal' AND type = ? AND match_order = 2").get(type);
         if (!sf1 || !sf1.completed || !sf2 || !sf2.completed) return;
+
+        const finalExists = db.prepare("SELECT id FROM matches WHERE phase = 'final' AND type = ?").get(type);
+        if (finalExists) return;
 
         const getWinner = (match) => match.score_team1 > match.score_team2
             ? { p1: match.team1_player1_id, p2: match.team1_player2_id }
@@ -654,53 +680,35 @@ function generateFinals() {
     });
 }
 
+function checkBracketReadyType(bracketType, type) {
+    const groups = db.prepare('SELECT id FROM groups WHERE bracket = ? AND type = ?').all(bracketType, type);
+    for (const g of groups) {
+        pickBestAndWorst(g.id);
+    }
+}
+
 function autoAdvanceTournament() {
-    const state = db.prepare('SELECT * FROM tournament_state WHERE id = 1').get();
+    generateLowerBracket();
+    generateSemifinal1();
+    generateSemifinal2();
+    generateFinals();
     
-    if (state.phase === 'gironi') {
-        const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase IN ('gironi', 'tiebreak') AND completed = 0").get();
-        if (unfinished.cnt === 0) {
-            try { checkBracketReady('upper'); } catch (err) { return; /* Pending tiebreak just created */ }
-            generateLowerBracket();
-            db.prepare("UPDATE tournament_state SET phase = 'lower_bracket' WHERE id = 1").run();
-            // Call again in case we can skip lower_bracket if it has no matches (not likely, but safe)
-            autoAdvanceTournament();
-        }
-    } else if (state.phase === 'lower_bracket') {
-        const unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase IN ('lower', 'tiebreak') AND completed = 0").get();
-        if (unfinished.cnt === 0) {
-            try { checkBracketReady('upper'); } catch (err) { return; }
-            generateSemifinal1();
-            db.prepare("UPDATE tournament_state SET phase = 'elimination' WHERE id = 1").run();
-            autoAdvanceTournament();
-        }
-    } else if (state.phase === 'elimination') {
-        // SF1 -> SF2
-        const sf1Unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 1 AND completed = 0").get();
-        if (sf1Unfinished.cnt === 0) {
-            const sf2Exists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2").get();
-            if (sf2Exists.cnt === 0) {
-                try { checkBracketReady('lower'); } catch (err) { return; }
-                generateSemifinal2();
-            }
-        }
-        
-        // SF2 -> Final
-        const sf2Unfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2 AND completed = 0").get();
-        const sf2Exists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal' AND match_order = 2").get();
-        if (sf2Exists.cnt > 0 && sf2Unfinished.cnt === 0) {
-            const finalsExist = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
-            if (finalsExist.cnt === 0) {
-                generateFinals();
-            }
-        }
-        
-        // Final -> Completed
-        const finalsUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final' AND completed = 0").get();
-        const finalsExists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
-        if (finalsExists.cnt > 0 && finalsUnfinished.cnt === 0) {
-            db.prepare("UPDATE tournament_state SET phase = 'completed' WHERE id = 1").run();
-        }
+    // Update tournament_state phase cosmetically
+    const state = db.prepare('SELECT * FROM tournament_state WHERE id = 1').get();
+    let nextPhase = state.phase;
+    
+    const lowerExists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'lower'").get();
+    if (lowerExists.cnt > 0) nextPhase = 'lower_bracket';
+    
+    const sfExists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'semifinal'").get();
+    if (sfExists.cnt > 0) nextPhase = 'elimination';
+    
+    const finalsUnfinished = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final' AND completed = 0").get();
+    const finalsExists = db.prepare("SELECT COUNT(*) as cnt FROM matches WHERE phase = 'final'").get();
+    if (finalsExists.cnt === 2 && finalsUnfinished.cnt === 0) nextPhase = 'completed';
+    
+    if (nextPhase !== state.phase) {
+        db.prepare("UPDATE tournament_state SET phase = ? WHERE id = 1").run(nextPhase);
     }
 }
 
